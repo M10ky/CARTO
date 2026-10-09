@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartographie du Cluster</title>
+<style>
+:root{
+  --bg:#0a1b2e;
+  --bg-deep:#071522;
+  --grid-line: rgba(110,200,210,0.08);
+  --grid-line-strong: rgba(110,200,210,0.16);
+  --cyan:#5EE6E6;
+  --cyan-dim:#2f6b6e;
+  --cyan-glow: rgba(94,230,230,0.35);
+  --amber:#f0a868;
+  --magenta:#e85d9a;
+  --text:#eaf4f6;
+  --text-dim:#7fa0b0;
+  --text-faint:#4d6577;
+  --panel:#0e2537;
+  --panel-2:#122c40;
+  --border:#1c3f52;
+  --occ: rgba(94,230,230,0.10);
+  --occ-border: rgba(94,230,230,0.45);
+  --vac: rgba(240,168,104,0.08);
+  --vac-border: rgba(240,168,104,0.55);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+body{
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-line-strong) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line-strong) 1px, transparent 1px);
+  background-size: 16px 16px, 16px 16px, 96px 96px, 96px 96px;
+  background-position: -1px -1px;
+}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan-dim);}
+
+.mono{font-family:'JetBrains Mono','SF Mono',Consolas,monospace;}
+
+/* ---------- LAYOUT SHELL ---------- */
+#app{display:grid;grid-template-columns:300px 1fr;grid-template-rows:auto 1fr;height:100vh;}
+header#top{
+  grid-column:1/3;
+  display:flex;align-items:center;gap:18px;
+  padding:14px 22px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg, var(--bg-deep), var(--bg));
+  position:relative; z-index:20;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.brand-mark{
+  width:38px;height:38px;border:1.5px solid var(--cyan);border-radius:3px;
+  display:flex;align-items:center;justify-content:center;position:relative;
+  color:var(--cyan);font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;
+  flex-shrink:0;
+}
+.brand-mark::before,.brand-mark::after{content:'';position:absolute;width:6px;height:6px;border:1px solid var(--cyan);}
+.brand-mark::before{top:-3px;left:-3px;border-right:none;border-bottom:none;}
+.brand-mark::after{bottom:-3px;right:-3px;border-left:none;border-top:none;}
+.brand-text h1{font-size:16px;margin:0;font-weight:600;letter-spacing:0.02em;}
+.brand-text span{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;letter-spacing:0.04em;}
+
+.kpis{display:flex;gap:0;margin-left:auto;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.kpi{padding:6px 18px;text-align:center;border-right:1px solid var(--border);min-width:78px;}
+.kpi:last-child{border-right:none;}
+.kpi .n{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--cyan);line-height:1.1;}
+.kpi.vac .n{color:var(--amber);}
+.kpi .l{font-size:9.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;}
+
+.locate-btn{
+  background:var(--cyan);color:var(--bg-deep);border:none;border-radius:4px;
+  padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:0.02em;
+  font-family:inherit; white-space:nowrap;
+}
+.locate-btn:hover{background:#8ff0f0;}
+
+/* ---------- SIDEBAR ---------- */
+aside#side{
+  border-right:1px solid var(--border);
+  background:rgba(10,27,46,0.6);
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.side-block{padding:16px 18px;border-bottom:1px solid var(--border);}
+.side-title{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-faint);margin-bottom:10px;font-weight:600;}
+#search{
+  width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);padding:9px 11px;font-size:13px;font-family:inherit;outline:none;
+}
+#search:focus{border-color:var(--cyan-dim);}
+#search::placeholder{color:var(--text-faint);}
+.result-list{margin-top:8px;max-height:180px;overflow-y:auto;}
+.result-item{
+  padding:7px 9px;border-radius:3px;cursor:pointer;font-size:12.5px;
+  display:flex;justify-content:space-between;gap:6px;
+}
+.result-item:hover{background:var(--panel-2);}
+.result-item .rn{color:var(--text);}
+.result-item .rc{color:var(--text-faint);font-family:'JetBrains Mono',monospace;font-size:10.5px;}
+
+.filter-row{display:flex;flex-direction:column;gap:8px;}
+select{
+  width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);padding:8px 10px;font-size:12.5px;font-family:inherit;outline:none;
+}
+
+.legend-item{display:flex;align-items:center;gap:9px;font-size:12px;color:var(--text-dim);margin-bottom:7px;}
+.legend-swatch{width:13px;height:13px;border-radius:2px;flex-shrink:0;}
+
+.zone-nav{flex:1;overflow-y:auto;}
+.wing-group{margin-bottom:2px;}
+.wing-label{
+  padding:9px 18px 6px;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;
+  color:var(--cyan-dim);font-weight:700;position:sticky;top:0;background:var(--bg);
+}
+.zone-link{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 18px;cursor:pointer;font-size:13px;color:var(--text-dim);
+  border-left:2px solid transparent;
+}
+.zone-link:hover{background:var(--panel);color:var(--text);}
+.zone-link.active{border-left-color:var(--cyan);color:var(--text);background:var(--panel);}
+.zone-link .zcount{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);}
+
+.edit-toggle{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 18px;border-top:1px solid var(--border);margin-top:auto;
+}
+.edit-toggle .lbl{font-size:12px;color:var(--text-dim);}
+.switch{position:relative;width:38px;height:20px;flex-shrink:0;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute;inset:0;background:var(--panel-2);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:.15s;}
+.slider::before{content:'';position:absolute;width:14px;height:14px;left:2px;top:2px;background:var(--text-faint);border-radius:50%;transition:.15s;}
+input:checked + .slider{background:rgba(94,230,230,0.18);border-color:var(--cyan-dim);}
+input:checked + .slider::before{transform:translateX(18px);background:var(--cyan);}
+
+/* ---------- MAIN CANVAS ---------- */
+main#canvas{overflow-y:auto;padding:26px 30px 80px;position:relative;}
+.wing-heading{
+  display:flex;align-items:center;gap:14px;margin:36px 0 18px;
+}
+.wing-heading:first-child{margin-top:0;}
+.wing-heading h2{font-size:13px;letter-spacing:0.14em;text-transform:uppercase;color:var(--cyan);margin:0;font-weight:700;}
+.wing-heading .line{flex:1;height:1px;background:var(--border);}
+
+.zone-block{
+  border:1px solid var(--border);border-radius:6px;margin-bottom:26px;background:rgba(14,37,55,0.35);
+  scroll-margin-top:20px;
+}
+.zone-head{
+  display:flex;align-items:center;gap:16px;padding:12px 18px;border-bottom:1px solid var(--border);
+  background:rgba(14,37,55,0.5);border-radius:6px 6px 0 0;
+}
+.zone-head h3{margin:0;font-size:14px;font-weight:700;}
+.zone-head .zsub{font-size:11px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;}
+.zone-stats{display:flex;gap:14px;margin-left:auto;font-size:11px;}
+.zone-stats b{color:var(--cyan);font-family:'JetBrains Mono',monospace;}
+.zone-stats .vv{color:var(--amber);}
+
+.row-block{padding:12px 18px;border-bottom:1px dashed var(--grid-line-strong);}
+.row-block:last-child{border-bottom:none;}
+.row-label{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px;}
+
+.seat{
+  position:relative;border-radius:4px;padding:7px 9px 6px;cursor:pointer;
+  border:1px solid var(--border);background:var(--panel);min-height:52px;
+  transition:transform .08s, box-shadow .12s; overflow:hidden;
+}
+.seat:hover{transform:translateY(-1px);box-shadow:0 0 0 1px var(--cyan-dim), 0 6px 14px rgba(0,0,0,0.35);}
+.seat.occ{background:var(--occ);border-color:var(--occ-border);}
+.seat.vac{background:var(--vac);border-color:var(--vac-border);border-style:dashed;}
+.seat.flash{animation:flashseat 1.6s ease;}
+@keyframes flashseat{
+  0%,100%{box-shadow:0 0 0 0 var(--cyan-glow);}
+  20%{box-shadow:0 0 0 6px var(--cyan-glow);}
+}
+.seat .nm{font-size:12px;font-weight:600;color:var(--text);line-height:1.25;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.seat.vac .nm{color:var(--amber);font-style:italic;font-weight:500;}
+.seat .rl{font-size:10px;color:var(--text-dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.seat .cd{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-faint);margin-top:5px;letter-spacing:0.02em;}
+.seat .tag{
+  position:absolute;top:0;right:0;font-size:8px;font-family:'JetBrains Mono',monospace;
+  background:var(--magenta);color:#fff;padding:1px 5px 1px 6px;border-radius:0 3px 0 6px;letter-spacing:0.03em;
+}
+.seat .corner{position:absolute;width:5px;height:5px;border-color:var(--text-faint);opacity:.5;}
+.seat .corner.tl{top:2px;left:2px;border-top:1px solid;border-left:1px solid;}
+.seat .corner.br{bottom:2px;right:2px;border-bottom:1px solid;border-right:1px solid;}
+
+.box-block{display:flex;gap:12px;flex-wrap:wrap;padding:16px 18px;}
+.box-card{
+  background:var(--panel-2);border:1px solid var(--cyan-dim);border-radius:5px;padding:14px 18px;
+  min-width:150px;text-align:center;cursor:pointer;
+}
+.box-card:hover{border-color:var(--cyan);}
+.box-card .nm{font-size:13px;font-weight:700;}
+.box-card .rl{font-size:10.5px;color:var(--text-dim);margin-top:3px;}
+
+/* ---------- DRAWER ---------- */
+#overlay{position:fixed;inset:0;background:rgba(4,12,20,0.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .18s;z-index:40;}
+#overlay.show{opacity:1;pointer-events:auto;}
+#drawer{
+  position:fixed;top:0;right:0;height:100vh;width:400px;max-width:92vw;
+  background:var(--bg-deep);border-left:1px solid var(--border);
+  transform:translateX(100%);transition:transform .22s cubic-bezier(.4,0,.2,1);
+  z-index:50;display:flex;flex-direction:column;box-shadow:-20px 0 40px rgba(0,0,0,0.4);
+}
+#drawer.show{transform:translateX(0);}
+.drawer-head{padding:20px 22px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:14px;}
+.avatar{
+  width:44px;height:44px;border-radius:50%;border:1.5px solid var(--cyan);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;
+  color:var(--cyan);flex-shrink:0;background:rgba(94,230,230,0.08);
+}
+.drawer-head .bc{font-size:10.5px;color:var(--text-faint);font-family:'JetBrains Mono',monospace;margin-bottom:4px;letter-spacing:0.02em;}
+.drawer-head .ttl{font-size:15px;font-weight:700;}
+.drawer-close{margin-left:auto;background:none;border:none;color:var(--text-faint);font-size:20px;cursor:pointer;line-height:1;padding:2px 6px;}
+.drawer-close:hover{color:var(--text);}
+
+.drawer-body{flex:1;overflow-y:auto;padding:18px 22px 30px;}
+.field-group{margin-bottom:22px;}
+.field-group .fg-title{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--cyan-dim);font-weight:700;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:10.5px;color:var(--text-faint);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;}
+.field input, .field select{
+  width:100%;background:var(--panel);border:1px solid var(--border);border-radius:4px;
+  color:var(--text);padding:8px 10px;font-size:13px;font-family:inherit;outline:none;
+}
+.field input:disabled, .field select:disabled{color:var(--text-dim);background:rgba(14,37,55,0.3);cursor:default;}
+.field input:focus, .field select:focus{border-color:var(--cyan-dim);}
+.field-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+.status-pills{display:flex;gap:6px;}
+.status-pill{flex:1;text-align:center;padding:8px 4px;border:1px solid var(--border);border-radius:4px;cursor:pointer;font-size:11.5px;color:var(--text-dim);}
+.status-pill.on.occ{background:var(--occ);border-color:var(--occ-border);color:var(--cyan);}
+.status-pill.on.vac{background:var(--vac);border-color:var(--vac-border);color:var(--amber);}
+.status-pill:not(.editable){pointer-events:none;opacity:0.85;}
+
+.drawer-foot{padding:16px 22px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.btn{flex:1;padding:10px;border-radius:4px;border:1px solid var(--border);background:var(--panel);color:var(--text-dim);font-family:inherit;font-size:12.5px;font-weight:600;cursor:pointer;}
+.btn:hover{color:var(--text);}
+.btn.primary{background:var(--cyan);border-color:var(--cyan);color:var(--bg-deep);}
+.btn.primary:hover{background:#8ff0f0;}
+.btn.danger{color:var(--magenta);}
+.btn.danger:hover{border-color:var(--magenta);}
+.save-note{font-size:11px;color:var(--text-faint);text-align:center;padding:0 22px 14px;}
+.save-note.ok{color:var(--cyan);}
+
+.readonly-note{font-size:11.5px;color:var(--text-faint);background:rgba(240,168,104,0.07);border:1px solid var(--vac-border);border-radius:4px;padding:9px 11px;margin-bottom:16px;}
+
+.empty-hint{padding:60px 20px;text-align:center;color:var(--text-faint);font-size:13px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="brand">
+      <div class="brand-mark">C</div>
+      <div class="brand-text">
+        <h1>Cartographie du Cluster</h1>
+        <span id="lastupdate">SITE — PLAN INTERACTIF DES POSITIONS</span>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="n" id="kpi-total">–</div><div class="l">Positions</div></div>
+      <div class="kpi"><div class="n" id="kpi-occ">–</div><div class="l">Occupées</div></div>
+      <div class="kpi vac"><div class="n" id="kpi-vac">–</div><div class="l">Vides</div></div>
+    </div>
+    <button class="locate-btn" id="locate-btn">📍 Me localiser</button>
+  </header>
+
+  <aside id="side">
+    <div class="side-block">
+      <div class="side-title">Rechercher un poste / une personne</div>
+      <input type="text" id="search" placeholder="Nom, code, service...">
+      <div class="result-list" id="results"></div>
+    </div>
+    <div class="side-block">
+      <div class="side-title">Filtres</div>
+      <div class="filter-row">
+        <select id="f-wing"><option value="">Toutes les ailes</option></select>
+        <select id="f-status">
+          <option value="">Tous les statuts</option>
+          <option value="occ">Occupé</option>
+          <option value="vac">Vide</option>
+        </select>
+      </div>
+    </div>
+    <div class="side-block">
+      <div class="side-title">Légende</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--occ);border:1px solid var(--occ-border)"></div>Poste occupé</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--vac);border:1px dashed var(--vac-border)"></div>Poste vide</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:var(--magenta)"></div>Ajout récent</div>
+    </div>
+    <div class="side-title" style="padding:14px 18px 4px;">Zones du cluster</div>
+    <nav class="zone-nav" id="zone-nav"></nav>
+    <div class="edit-toggle">
+      <span class="lbl">Mode édition</span>
+      <label class="switch"><input type="checkbox" id="edit-mode"><span class="slider"></span></label>
+    </div>
+  </aside>
+
+  <main id="canvas"></main>
+</div>
+
+<div id="overlay"></div>
+<div id="drawer">
+  <div class="drawer-head">
+    <div class="avatar" id="d-avatar">–</div>
+    <div>
+      <div class="bc" id="d-breadcrumb">—</div>
+      <div class="ttl" id="d-title">—</div>
+    </div>
+    <button class="drawer-close" id="d-close">✕</button>
+  </div>
+  <div class="drawer-body" id="d-body"></div>
+  <div class="save-note" id="d-note"></div>
+  <div class="drawer-foot" id="d-foot"></div>
+</div>
+
+<script>
+/* ============================================================
+   DONNÉES DU CLUSTER
+   Modèle : Ailes > Zones/Box > Rangées > Postes
+   Les postes "réels" repris des captures sont indiqués tels quels ;
+   le reste est généré pour représenter la volumétrie réelle du site
+   (à affiner ensuite poste par poste via le mode édition).
+============================================================ */
+const FIRST_NAMES = ["Njaka","Rojo","Lalaina","Anthony","Miora","Princia","Faratiana","Narisoa","Joelle",
+"Fenoniaina","Yalitiana","Laura","Nathalie","Naomi","Andry","Cathicia","Aina","Manoa","Maholy","Bonie",
+"Brinda","Sandrinah","Mendrika","Fanaiky","Joannah","Yahatra","Hubert","Victoria","Hermiona","Claudia",
+"Faly","Sambatra","Nomena","Sylvio","Adrianina","Nampoina","Josia","Aymard","Angelo","Armando","Taniona",
+"Iarovana","Patricia","Larissa","Ony","Misa","Mamisoa","Henrico","Sylvia","Nivo","Herizo","Toky","Fenosoa",
+"Zo","Mbola","Anja","Rivo","Fitia","Miadana","Baholy","Tovo","Iva","Nirina","Solofo","Haja","Tsiory","Ando",
+"Lovasoa","Mialitiana","Ambinintsoa","Fara","Rado","Lazasoa","Malala","Jocelyn","Voary","Soava","Tendry",
+"Murielle","Anick","Sarobidy","Nano","Sylvano","Yvan","Tsiry","Olivia","Mihanta","Mirary","Sergio","Sandrify",
+"Antonieta","Hary","Zoarisaina","Mialy","Cathycia","Nomeniavo"];
+
+const ZONE_DEFS = [
+  {id:"box5", wing:"Central", type:"box", name:"Box 5 — Direction", total:1,
+    seats:[{name:"Malik", role:"CEO", real:true}]},
+  {id:"box4", wing:"Central", type:"box", name:"Box 4 — Direction", total:3,
+    seats:[{name:"—", role:"Salle Create", real:true, kind:"space"},
+           {name:"—", role:"Salle Agilité", real:true, kind:"space"},
+           {name:"Voahangy", role:"Consultante", real:true}]},
+  {id:"box3", wing:"Central", type:"box", name:"Box 3 — Direction", total:1,
+    seats:[{name:"—", role:"COO", real:true}]},
+
+  {id:"zone1", wing:"Aile Nord", name:"Zone 1 — B4B", total:78, rows:5, dept:"B4B",
+    roles:["Conseiller Clientèle B4B","Téléconseiller B4B"], vac:0,
+    real:[{r:0,c:0,name:"Patrick",role:"Manager B4B"},{r:0,c:1,name:"Jonathan",role:"Manager B4B"},
+          {r:3,c:0,name:"Lania",role:"B4B"},{r:3,c:1,name:"Voahary (w/m)",role:"B4B"}]},
+  {id:"zone2", wing:"Aile Nord", name:"Zone 2 — Grands Comptes / PMI-PME", total:64, rows:4, dept:"Commercial",
+    roles:["Conseiller Grands Comptes","Conseiller PMI/PME","Conseiller PRODIGY","Conseiller MAN","Conseiller ELM"],
+    vac:0, real:[{r:0,c:0,name:"Sandrine",role:"MC Lac / Manoa"},{r:1,c:0,name:"Kintana",role:"Cometel"},
+          {r:2,c:0,name:"Mendrika",role:"MAN"},{r:2,c:2,name:"Brains",role:"JOKO"}]},
+  {id:"zone3", wing:"Aile Nord", name:"Zone 3 — MVOLA AE", total:48, rows:3, dept:"Mvola",
+    roles:["Conseiller MVOLA AE"], vac:0,
+    real:[{r:0,c:0,name:"Tahina",role:"MC AE Mvola"},{r:1,c:0,name:"Hina",role:"Violet AE Mvola"},
+          {r:2,c:0,name:"Havaka",role:"MC AE Mvola"}]},
+  {id:"zone4n", wing:"Aile Nord", name:"Zone 4 — YAS AS / Télésales", total:60, rows:4, dept:"Yas",
+    roles:["Conseiller YAS AS","Télésales YAS","Recouvrement MVOLA AS"], vac:0,
+    real:[{r:0,c:0,name:"Manitra",role:"MC Yas AS / ANTSA Manager"},{r:1,c:0,name:"Herminia",role:"MC Digital Santatra"},
+          {r:2,c:0,name:"Nampoina",role:"MC Mvola"},{r:2,c:3,name:"Tahina",role:"Manager"}]},
+  {id:"zone4nb", wing:"Aile Nord", name:"Zone 4 — Certifications", total:18, rows:2, dept:"Certification",
+    roles:["Certification MVOLA"], vac:0, real:[]},
+  {id:"zone9", wing:"Aile Nord", name:"Zone 9 — Réclamations / Accueil MVOLA", total:90, rows:5, dept:"Mvola",
+    roles:["ACT-ACCR MVOLA","RECLA MVOLA","REQ MVOLA"], vac:17,
+    real:[{r:0,c:0,name:"Taniona",role:"OM FO Mvola"},{r:0,c:1,name:"Azaria",role:"CQ Mvola"},
+          {r:0,c:2,name:"Iarovana",role:"MC Requête Mvola"},{r:0,c:3,name:"Patricia",role:"MC Mvola"}]},
+
+  {id:"zone5", wing:"Aile Sud", name:"Zone 5 — Support / IT / Consulting / Finances", total:48, rows:4, dept:"Support",
+    roles:["Support Cometé","Consultant IT","Consultant","Analyste Finances","Assistant BD","Chargé Communication"],
+    vac:3, real:[{r:3,c:2,name:"—",role:"VIDE (Support)"},{r:2,c:3,name:"—",role:"VIDE (Support)"},
+          {r:1,c:0,name:"Njaka",role:"IT"},{r:1,c:1,name:"Rojo",role:"IT"},
+          {r:0,c:5,name:"—",role:"Support RAJOUT"}]},
+  {id:"zone6", wing:"Aile Sud", name:"Zone 6 — Activation / Facturation YAS / Tersea", total:72, rows:4, dept:"Yas",
+    roles:["Activation YAS","Facturation YAS","Conseiller Tersea","Manager Tersea"], vac:1,
+    real:[{r:3,c:7,name:"—",role:"VIDE"},{r:1,c:6,name:"Manager",role:"Tersea"}]},
+  {id:"zone7", wing:"Aile Sud", name:"Zone 7 — YAS AE / Digital", total:72, rows:4, dept:"Yas",
+    roles:["Conseiller YAS AE","Conseiller Yas Digital","Activation Yas","Rétention Yas","Réclamation Yas"], vac:0,
+    real:[{r:0,c:8,name:"Vigie",role:"AE Yas"},{r:0,c:9,name:"Judi",role:"MC Yas AE"}]},
+  {id:"zone-sud30", wing:"Aile Sud", name:"Zone — Opérateurs (Free / Incom / Stellarix / Prodigy)", total:30, rows:3, dept:"Opérateurs",
+    roles:["Conseiller FREE","Conseiller INCOM","Conseiller STELLARIX","Conseiller PRODIGY","Téléopérateur OM/TELCO"],
+    vac:0, real:[{r:0,c:0,name:"Larissa",role:"MC"},{r:0,c:1,name:"Ony",role:"MC"}]},
+  {id:"zone4s", wing:"Aile Sud", name:"Zone 4 — Comores / Telco OIF / VFM", total:46, rows:4, dept:"Opérateurs",
+    roles:["Conseiller Comores","Conseiller Telco OIF","Conseiller Welight","Agent VFM"], vac:0,
+    real:[{r:0,c:8,name:"Misa",role:"CCM"},{r:3,c:0,name:"Kizina",role:"VFM"},{r:3,c:8,name:"Murielle",role:"VFM"}]},
+];
+
+const STATUS_LABEL = {occ:"Occupé", vac:"Vide"};
+
+let seats = []; // flat list built from ZONE_DEFS
+let overrides = {}; // persisted edits keyed by seat id
+let editMode = false;
+let currentSeatId = null;
+let flashTargetId = null;
+
+function pick(arr, i){ return arr[i % arr.length]; }
+
+function buildSeats(){
+  let flat = [];
+  ZONE_DEFS.forEach(zone=>{
+    if(zone.type === "box"){
+      zone.seats.forEach((s,i)=>{
+        flat.push({
+          id: zone.id+"-"+i,
+          wing: zone.wing, zoneId: zone.id, zoneName: zone.name, row: "—",
+          code: zone.id.toUpperCase()+"-"+String(i+1).padStart(2,"0"),
+          name: s.kind==="space" ? s.role : s.name,
+          role: s.role, dept: "Direction",
+          status: s.kind==="space" ? "occ" : "occ",
+          real: true, tag: null, kind: s.kind||"person"
+        });
+      });
+      return;
+    }
+    const perRow = Math.ceil(zone.total / zone.rows);
+    let vacRemaining = zone.vac || 0;
+    let idx = 0;
+    for(let r=0;r<zone.rows;r++){
+      const rowSeats = [];
+      const countThisRow = Math.min(perRow, zone.total - r*perRow);
+      for(let c=0;c<countThisRow;c++){
+        const realHit = (zone.real||[]).find(x=>x.r===r && x.c===c);
+        const isVac = (realHit && realHit.role && realHit.role.toUpperCase().includes("VIDE")) ||
+                      (!realHit && vacRemaining>0 && (idx % Math.max(2, Math.floor(zone.total/Math.max(1,zone.vac||1)))===0) && vacRemaining-- > 0);
+        const nm = realHit ? realHit.name : pick(FIRST_NAMES, idx + zone.id.length*7);
+        const rl = realHit ? realHit.role : pick(zone.roles, idx);
+        const isRajout = !realHit && (idx % 17 === 3);
+        rowSeats.push({
+          id: zone.id+"-r"+r+"-c"+c,
+          wing: zone.wing, zoneId: zone.id, zoneName: zone.name,
+          row: "Rangée "+(r+1),
+          code: zone.id.toUpperCase()+"-"+String(idx+1).padStart(3,"0"),
+          name: isVac ? "Poste vide" : nm,
+          role: isVac ? "—" : rl,
+          dept: zone.dept,
+          status: isVac ? "vac" : "occ",
+          real: !!realHit,
+          tag: isRajout ? "RAJOUT" : null,
+          kind:"person"
+        });
+        idx++;
+      }
+      flat.push({rowHeader:true, zoneId:zone.id, row:"Rangée "+(r+1)});
+      flat.push(...rowSeats);
+    }
+  });
+  return flat;
+}
+
+/* ---------- PERSISTENCE ---------- */
+async function loadOverrides(){
+  try{
+    const res = await window.storage.get("seat-overrides", true);
+    overrides = res && res.value ? JSON.parse(res.value) : {};
+  }catch(e){ overrides = {}; }
+}
+async function saveOverrides(){
+  try{
+    await window.storage.set("seat-overrides", JSON.stringify(overrides), true);
+  }catch(e){ console.error("storage error", e); }
+}
+function applyOverrides(seat){
+  const o = overrides[seat.id];
+  if(!o) return seat;
+  return Object.assign({}, seat, o);
+}
+function getSeat(id){
+  const base = seats.find(s=>!s.rowHeader && s.id===id);
+  return base ? applyOverrides(base) : null;
+}
+
+/* ---------- RENDER ---------- */
+function seatInitials(name){
+  if(!name || name==="Poste vide") return "?";
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+}
+
+function renderKPIs(){
+  const all = seats.filter(s=>!s.rowHeader).map(s=>applyOverrides(s));
+  const total = all.length;
+  const occ = all.filter(s=>s.status==="occ").length;
+  const vac = all.filter(s=>s.status==="vac").length;
+  document.getElementById("kpi-total").textContent = total;
+  document.getElementById("kpi-occ").textContent = occ;
+  document.getElementById("kpi-vac").textContent = vac;
+}
+
+function renderSidebarNav(){
+  const wingOrder = ["Central","Aile Nord","Aile Sud"];
+  const nav = document.getElementById("zone-nav");
+  nav.innerHTML = "";
+  const wingSel = document.getElementById("f-wing");
+  wingSel.innerHTML = '<option value="">Toutes les ailes</option>' +
+    wingOrder.map(w=>`<option value="${w}">${w}</option>`).join("");
+
+  wingOrder.forEach(wing=>{
+    const zonesInWing = ZONE_DEFS.filter(z=>z.wing===wing);
+    if(!zonesInWing.length) return;
+    const grp = document.createElement("div");
+    grp.className = "wing-group";
+    grp.innerHTML = `<div class="wing-label">${wing}</div>`;
+    zonesInWing.forEach(z=>{
+      const count = seats.filter(s=>!s.rowHeader && s.zoneId===z.id).length;
+      const el = document.createElement("div");
+      el.className = "zone-link";
+      el.dataset.zoneId = z.id;
+      el.innerHTML = `<span>${z.name}</span><span class="zcount">${count}</span>`;
+      el.onclick = ()=>{
+        document.getElementById(z.id).scrollIntoView({behavior:"smooth", block:"start"});
+      };
+      grp.appendChild(el);
+    });
+    nav.appendChild(grp);
+  });
+}
+
+function seatCardHTML(seat){
+  const s = applyOverrides(seat);
+  const tag = s.tag ? `<div class="tag">${s.tag}</div>` : "";
+  return `<div class="seat ${s.status}" data-id="${s.id}">
+      ${tag}
+      <span class="corner tl"></span><span class="corner br"></span>
+      <div class="nm">${s.name}</div>
+      <div class="rl">${s.role||""}</div>
+      <div class="cd mono">${s.code}</div>
+    </div>`;
+}
+
+function renderCanvas(){
+  const canvas = document.getElementById("canvas");
+  canvas.innerHTML = "";
+  const wingOrder = ["Central","Aile Nord","Aile Sud"];
+
+  wingOrder.forEach(wing=>{
+    const zonesInWing = ZONE_DEFS.filter(z=>z.wing===wing);
+    if(!zonesInWing.length) return;
+    const heading = document.createElement("div");
+    heading.className = "wing-heading";
+    heading.innerHTML = `<h2>${wing}</h2><div class="line"></div>`;
+    canvas.appendChild(heading);
+
+    zonesInWing.forEach(z=>{
+      const zoneSeats = seats.filter(s=>!s.rowHeader && s.zoneId===z.id).map(applyOverrides);
+      const occ = zoneSeats.filter(s=>s.status==="occ").length;
+      const vac = zoneSeats.filter(s=>s.status==="vac").length;
+
+      const block = document.createElement("div");
+      block.className = "zone-block";
+      block.id = z.id;
+
+      if(z.type==="box"){
+        block.innerHTML = `
+          <div class="zone-head">
+            <h3>${z.name}</h3>
+            <div class="zone-stats"><span><b>${zoneSeats.length}</b> postes</span><span><b>${occ}</b> occ.</span><span class="vv"><b>${vac}</b> vides</span></div>
+          </div>
+          <div class="box-block">
+            ${zoneSeats.map(s=>`<div class="box-card" data-id="${s.id}"><div class="nm">${s.name}</div><div class="rl">${s.role}</div></div>`).join("")}
+          </div>`;
+      } else {
+        let rowsHTML = "";
+        let currentRow = null, buffer = [];
+        const flush = ()=>{
+          if(currentRow!==null){
+            rowsHTML += `<div class="row-block"><div class="row-label">${currentRow}</div><div class="seat-grid">${buffer.join("")}</div></div>`;
+          }
+          buffer = [];
+        };
+        seats.filter(s=>s.zoneId===z.id).forEach(item=>{
+          if(item.rowHeader){ flush(); currentRow = item.row; return; }
+          buffer.push(seatCardHTML(item));
+        });
+        flush();
+        rowsHTML;
+        block.innerHTML = `
+          <div class="zone-head">
+            <h3>${z.name}</h3>
+            <span class="zsub mono">${z.dept||""}</span>
+            <div class="zone-stats"><span><b>${zoneSeats.length}</b> postes</span><span><b>${occ}</b> occ.</span><span class="vv"><b>${vac}</b> vides</span></div>
+          </div>
+          ${rowsHTML}`;
+      }
+      canvas.appendChild(block);
+    });
+  });
+
+  canvas.querySelectorAll(".seat, .box-card").forEach(el=>{
+    el.addEventListener("click", ()=> openDrawer(el.dataset.id));
+  });
+
+  applyFilters();
+}
+
+/* ---------- FILTERS / SEARCH ---------- */
+function applyFilters(){
+  const wing = document.getElementById("f-wing").value;
+  const status = document.getElementById("f-status").value;
+  document.querySelectorAll(".zone-block").forEach(block=>{
+    const zid = block.id;
+    const zoneDef = ZONE_DEFS.find(z=>z.id===zid);
+    const wingMatch = !wing || zoneDef.wing===wing;
+    block.style.display = wingMatch ? "" : "none";
+  });
+  document.querySelectorAll(".seat, .box-card").forEach(el=>{
+    const seat = getSeat(el.dataset.id);
+    if(!seat){ return; }
+    const statusMatch = !status || seat.status===status;
+    el.style.display = statusMatch ? "" : "none";
+  });
+}
+
+function runSearch(q){
+  const box = document.getElementById("results");
+  if(!q || q.length<2){ box.innerHTML=""; return; }
+  const ql = q.toLowerCase();
+  const matches = seats.filter(s=>!s.rowHeader).map(applyOverrides)
+    .filter(s => (s.name||"").toLowerCase().includes(ql) ||
+                 (s.code||"").toLowerCase().includes(ql) ||
+                 (s.role||"").toLowerCase().includes(ql) ||
+                 (s.zoneName||"").toLowerCase().includes(ql))
+    .slice(0,25);
+  box.innerHTML = matches.map(m=>
+    `<div class="result-item" data-id="${m.id}"><span class="rn">${m.name} — <span style="color:var(--text-faint)">${m.role||""}</span></span><span class="rc">${m.code}</span></div>`
+  ).join("") || `<div class="result-item" style="color:var(--text-faint)">Aucun résultat</div>`;
+  box.querySelectorAll(".result-item[data-id]").forEach(el=>{
+    el.addEventListener("click", ()=> locateSeat(el.dataset.id));
+  });
+}
+
+function locateSeat(id){
+  const el = document.querySelector(`.seat[data-id="${id}"], .box-card[data-id="${id}"]`);
+  const parentZone = document.querySelectorAll(".zone-block");
+  if(!el) return;
+  el.scrollIntoView({behavior:"smooth", block:"center"});
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  openDrawer(id);
+}
+
+/* ---------- DRAWER ---------- */
+function openDrawer(id){
+  const seat = getSeat(id);
+  if(!seat) return;
+  currentSeatId = id;
+  document.getElementById("d-avatar").textContent = seatInitials(seat.name);
+  document.getElementById("d-breadcrumb").textContent =
+    `${seat.wing} › ${seat.zoneName} › ${seat.row}`;
+  document.getElementById("d-title").textContent = seat.name;
+
+  const canEdit = editMode;
+  const pc = seat.pc || {hostname:"", ip:"", os:"Windows 11", asset:"", maintenance:""};
+
+  document.getElementById("d-body").innerHTML = `
+    ${!canEdit ? `<div class="readonly-note">Lecture seule — activez le <b>Mode édition</b> dans la barre latérale pour modifier cette fiche.</div>` : ""}
+    <div class="field-group">
+      <div class="fg-title">Occupant</div>
+      <div class="field"><label>Nom</label><input id="f-name" type="text" value="${escAttr(seat.name)}" ${canEdit?"":"disabled"}></div>
+      <div class="field"><label>Rôle / Fonction</label><input id="f-role" type="text" value="${escAttr(seat.role||"")}" ${canEdit?"":"disabled"}></div>
+      <div class="field"><label>Service</label><input id="f-dept" type="text" value="${escAttr(seat.dept||"")}" ${canEdit?"":"disabled"}></div>
+      <div class="field">
+        <label>Statut</label>
+        <div class="status-pills">
+          <div class="status-pill ${seat.status==="occ"?"on occ":""} ${canEdit?"editable":""}" data-status="occ">Occupé</div>
+          <div class="status-pill ${seat.status==="vac"?"on vac":""} ${canEdit?"editable":""}" data-status="vac">Vide</div>
+        </div>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="fg-title">Localisation cluster</div>
+      <div class="field"><label>Aile</label><input value="${escAttr(seat.wing)}" disabled></div>
+      <div class="field-2col">
+        <div class="field"><label>Zone</label><input value="${escAttr(seat.zoneName)}" disabled></div>
+        <div class="field"><label>Rangée</label><input value="${escAttr(seat.row)}" disabled></div>
+      </div>
+      <div class="field"><label>Code position</label><input class="mono" value="${escAttr(seat.code)}" disabled></div>
+    </div>
+    <div class="field-group">
+      <div class="fg-title">Poste informatique</div>
+      <div class="field"><label>Nom de machine (hostname)</label><input id="f-host" type="text" placeholder="ex: PC-CLU-0142" value="${escAttr(pc.hostname)}" ${canEdit?"":"disabled"}></div>
+      <div class="field-2col">
+        <div class="field"><label>Adresse IP</label><input id="f-ip" type="text" placeholder="ex: 10.12.4.31" value="${escAttr(pc.ip)}" ${canEdit?"":"disabled"}></div>
+        <div class="field"><label>Système</label>
+          <select id="f-os" ${canEdit?"":"disabled"}>
+            ${["Windows 11","Windows 10","Ubuntu 22.04","Thin Client"].map(o=>`<option ${pc.os===o?"selected":""}>${o}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div class="field-2col">
+        <div class="field"><label>N° d'inventaire</label><input id="f-asset" type="text" placeholder="ex: INV-2026-0871" value="${escAttr(pc.asset)}" ${canEdit?"":"disabled"}></div>
+        <div class="field"><label>Dernière maintenance</label><input id="f-maint" type="date" value="${escAttr(pc.maintenance)}" ${canEdit?"":"disabled"}></div>
+      </div>
+    </div>
+  `;
+
+  let pendingStatus = seat.status;
+  if(canEdit){
+    document.querySelectorAll(".status-pill.editable").forEach(p=>{
+      p.addEventListener("click", ()=>{
+        pendingStatus = p.dataset.status;
+        document.querySelectorAll(".status-pill").forEach(x=>x.classList.remove("on","occ","vac"));
+        p.classList.add("on", pendingStatus);
+      });
+    });
+  }
+
+  document.getElementById("d-foot").innerHTML = canEdit ? `
+      <button class="btn danger" id="d-clear">Vider le poste</button>
+      <button class="btn primary" id="d-save">Enregistrer</button>
+    ` : `<button class="btn" id="d-close2">Fermer</button>`;
+  document.getElementById("d-note").textContent = "";
+
+  if(canEdit){
+    document.getElementById("d-save").addEventListener("click", async ()=>{
+      overrides[id] = Object.assign({}, overrides[id], {
+        name: document.getElementById("f-name").value.trim() || "Poste vide",
+        role: document.getElementById("f-role").value.trim(),
+        dept: document.getElementById("f-dept").value.trim(),
+        status: pendingStatus,
+        pc: {
+          hostname: document.getElementById("f-host").value.trim(),
+          ip: document.getElementById("f-ip").value.trim(),
+          os: document.getElementById("f-os").value,
+          asset: document.getElementById("f-asset").value.trim(),
+          maintenance: document.getElementById("f-maint").value
+        }
+      });
+      await saveOverrides();
+      const note = document.getElementById("d-note");
+      note.textContent = "Fiche enregistrée ✓ (visible par tous les utilisateurs du plan)";
+      note.classList.add("ok");
+      renderKPIs(); renderCanvas();
+      openDrawer(id);
+    });
+    document.getElementById("d-clear").addEventListener("click", async ()=>{
+      overrides[id] = Object.assign({}, overrides[id], {
+        name:"Poste vide", role:"—", status:"vac"
+      });
+      await saveOverrides();
+      renderKPIs(); renderCanvas();
+      openDrawer(id);
+    });
+  } else {
+    document.getElementById("d-close2").addEventListener("click", closeDrawer);
+  }
+
+  document.getElementById("drawer").classList.add("show");
+  document.getElementById("overlay").classList.add("show");
+}
+function closeDrawer(){
+  document.getElementById("drawer").classList.remove("show");
+  document.getElementById("overlay").classList.remove("show");
+  currentSeatId = null;
+}
+function escAttr(s){ return (s||"").toString().replace(/"/g,"&quot;"); }
+
+/* ---------- INIT ---------- */
+async function init(){
+  seats = buildSeats();
+  await loadOverrides();
+  renderKPIs();
+  renderSidebarNav();
+  renderCanvas();
+
+  document.getElementById("search").addEventListener("input", e=>runSearch(e.target.value));
+  document.getElementById("f-wing").addEventListener("change", applyFilters);
+  document.getElementById("f-status").addEventListener("change", applyFilters);
+  document.getElementById("d-close").addEventListener("click", closeDrawer);
+  document.getElementById("overlay").addEventListener("click", closeDrawer);
+  document.getElementById("edit-mode").addEventListener("change", e=>{
+    editMode = e.target.checked;
+    if(currentSeatId) openDrawer(currentSeatId);
+  });
+  document.getElementById("locate-btn").addEventListener("click", ()=>{
+    const q = prompt("Entrez votre nom pour vous localiser sur le cluster :");
+    if(!q) return;
+    const ql = q.toLowerCase();
+    const found = seats.filter(s=>!s.rowHeader).map(applyOverrides).find(s=>(s.name||"").toLowerCase().includes(ql));
+    if(found){ locateSeat(found.id); }
+    else alert("Aucun poste trouvé pour « "+q+" ». Essayez la recherche latérale.");
+  });
+}
+init();
+</script>
+</body>
+</html>
