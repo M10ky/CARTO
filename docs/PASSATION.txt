@@ -1,0 +1,326 @@
+================================================================================
+FICHE DE PASSATION
+Application web de cartographie du Cluster CNTO
+================================================================================
+
+Document de reprise de travail, destiné à toute personne (humaine ou assistante
+IA) qui reprend le projet. À lire avec PROJECT_STATUS.md (suivi d'étapes),
+docs/audit-phase0.md (audit des sources) et docs/cartographie-phase3.md.
+
+Dernière mise à jour : PHASE 6 (modules Collaborateurs et Parc informatique
+connectés : listes, recherche/filtres, fiches, création/modification et
+affectations position <-> collaborateur <-> équipement).
+
+
+--------------------------------------------------------------------------------
+1. OBJECTIF DU PROJET
+--------------------------------------------------------------------------------
+
+Construire une application web de cartographie physique du Cluster CNTO :
+
+  - reproduire fidèlement le plan (zones, rangées, allées, blocs) de la
+    référence Excel "Feuille de calcul sans titre.xlsx" ;
+  - y associer des positions (postes), des collaborateurs, le parc informatique
+    et les interventions de maintenance ;
+  - fournir un tableau de bord, un plan interactif, des fiches et des
+    statistiques ;
+  - ajouter l'import Excel / CSV, l'authentification et la gestion des rôles ;
+  - rester maintenable : données / logique métier / rendu / interactions
+    séparés.
+
+Public : personnel encadrant du cluster (consultation, inventaire,
+administration).
+
+
+--------------------------------------------------------------------------------
+2. RÈGLES DE TRAVAIL À RESPECTER ABSOLUMENT
+--------------------------------------------------------------------------------
+
+Ces règles viennent du prompt maître du projet ; elles sont non négociables.
+
+  1. Jamais tout générer d'un coup. Une étape à la fois, vérifiable
+     (build + lint + typecheck), puis attendre la validation de l'utilisateur
+     avant la suivante.
+  2. Géométrie fidèle à l'Excel. La disposition réelle des zones/rangées doit
+     être reprise du .xlsx. Il est INTERDIT de la remplacer par une grille
+     générique régulière. Ne pas réutiliser buildSeats() de
+     cartographie-cluster.html (Math.ceil(total / rows) + noms inventés).
+  3. Aucune donnée fictive en production. Pas de KPI, ni de liste, ni de poste
+     inventés : les écrans vides doivent l'assumer (état vide, mention
+     "provisoire").
+  4. Séparation stricte : données spatiales / données métier / rendu / interactions.
+  5. Thème différent de la géométrie : le thème doit pouvoir changer sans
+     toucher aux coordonnées du plan.
+  6. Permissions appliquées côté serveur, doublées par RLS dans Supabase.
+     Ne jamais se fier au seul masquage d'interface.
+  7. Ne jamais désactiver TypeScript, ESLint ou RLS pour contourner un problème.
+     Corriger la cause.
+  8. Ne pas commiter sans demande explicite de l'utilisateur.
+  9. Aucun commentaire dans le code (convention du projet) sauf nécessité
+     réelle documentée.
+
+
+--------------------------------------------------------------------------------
+3. STACK TECHNIQUE
+--------------------------------------------------------------------------------
+
+  Framework ............ Next.js 16.3.1 (App Router, Turbopack)
+  UI ................... React 19.2.8
+  Langage .............. TypeScript strict
+  Style ................ Tailwind CSS v4 (tokens via @theme dans app/globals.css)
+  Primitives a11y ...... @base-ui/react 1.7.0 (installé, utilisé en Phase 4+)
+  Icônes ............... lucide-react 1.33.0
+  Variantes de classes . class-variance-authority
+  Fusion de classes .... clsx + tailwind-merge (via lib/utils/cn.ts)
+  Validation ........... zod 4.4.3
+  Import Excel ......... xlsx 0.18.5 (À REMPLACER, voir §9)
+  Base de données ...... Supabase (Postgres + Supabase Auth + RLS)
+  Accès données ........ @supabase/supabase-js + @supabase/ssr (installés Phase 4)
+  Projet Supabase ...... https://uzifoigvupiknwimkfce.supabase.co
+  Clés ................. publishable (navigateur) + secrète (serveur), dans
+                         .env.local (gitignoré) ; variables NEXT_PUBLIC_*
+
+Prisma a été retiré du projet (aucun schéma écrit).
+
+
+--------------------------------------------------------------------------------
+4. COMMANDES UTILES
+--------------------------------------------------------------------------------
+
+  npm install                 dépendances
+  npm run dev                 serveur de développement (http://localhost:3000)
+  npm run lint                ESLint
+  npm run typecheck           tsc --noEmit
+  npm run build               build de production
+
+Ordre recommandé avant toute validation d'étape :
+  npm run lint && npm run typecheck && npm run build
+
+Remarque : si typecheck remonte des erreurs dans .next/types/... après
+modification des routes, supprimer .next/ (rm -rf .next) puis relancer :
+ce sont des types générés obsolètes, pas des erreurs de code.
+
+
+--------------------------------------------------------------------------------
+5. ARBORESCENCE ACTUELLE
+--------------------------------------------------------------------------------
+
+  app/
+    layout.tsx                    racine (fonts Inter + JetBrains Mono, lang="fr")
+    globals.css                   tokens Tailwind v4 (palette premium dark)
+    (auth)/
+      login/page.tsx              écran de connexion (hors AppShell)
+    (dashboard)/
+      layout.tsx                  session obligatoire (redirect /login) + AppShell
+      page.tsx                    Tableau de bord (provisoire, Module A)
+      cluster/page.tsx            Cartographie connectée : lecture base + éditeur (Phase 5)
+      employees/page.tsx          Collaborateurs : liste + filtres + création (Phase 6)
+      employees/[id]/page.tsx     Fiche collaborateur + affectations (Phase 6)
+      assets/page.tsx             Parc informatique : liste + filtres + création (Phase 6)
+      assets/[id]/page.tsx        Fiche équipement + affectations (Phase 6)
+      maintenance/page.tsx        Maintenance (provisoire, Module E)
+      reports/page.tsx            Statistiques (provisoire, Module F)
+      settings/page.tsx           Administration (provisoire, Module G)
+  proxy.ts                        ex-middleware Next 16 : session + protection
+  supabase/migrations/
+    20261009120000_init_schema.sql        tables, helpers, triggers, audit
+    20261009120100_rls_policies.sql       RLS + privilèges
+    20261009120200_seed_statuses.sql      6 statuts de poste
+    20261009120300_seed_spatial.sql       amorce (16 zones, 93 rangées, 671 positions)
+    20261009120400_pc_assets_status_check.sql  contrainte de statut du parc
+  components/
+    auth/
+      login-form.tsx              formulaire (useActionState)
+      sign-out-button.tsx         déconnexion (server action)
+    layout/
+      app-shell.tsx               shell client (état sidebar mobile, Escape)
+      sidebar.tsx                 navigation (usePathname, aria-current)
+      header.tsx                  barre supérieure + utilisateur + rôle
+      page-header.tsx             en-tête de page
+      module-placeholder.tsx      écran provisoire réutilisable
+    cartography/
+      cluster-plan.tsx            rendu SVG présentationnel, piloté par la base (Phase 5)
+      cluster-viewer.tsx          vue interactive : sélection, édition, déplacement
+    inventory/
+      filter-bar.tsx              barre de filtres (formulaire GET) + FilterField
+    employees/
+      employee-form.tsx           création / édition d'un collaborateur
+      employee-table.tsx          liste des collaborateurs
+      new-employee.tsx            bouton + panneau de création
+      seat-assignments.tsx        affectation / historique de position
+      employee-status-toggle.tsx  activation / désactivation
+    assets/
+      asset-form.tsx              création / édition d'un équipement
+      asset-table.tsx             liste du parc
+      new-asset.tsx               bouton + panneau de création
+      asset-assignments.tsx       affectation à un collaborateur / remise en stock
+      asset-status-toggle.tsx     activation / désactivation
+    ui/
+      button.tsx                  Button + buttonVariants (cva)
+      field.tsx                   Field, Input, Textarea, Select
+      badge.tsx                   Badge (tone + dot + icône)
+      panel.tsx                   Panel, PanelHeader, PanelBody
+      table.tsx                   primitives de tableau
+      alert.tsx                   Alert (info/success/warning/danger)
+      empty-state.tsx             EmptyState, Spinner
+  lib/
+    utils/cn.ts                   fusion de classes
+    constants/nav.ts              NAV_ITEMS + findNavItem (7 modules)
+    data/
+      spatial.ts                  getPlanLayout() : lecture base -> types/plan.ts
+      employees.ts                list/detail collaborateurs, services, options
+      assets.ts                   list/detail du parc, types d'équipement
+      assignments.ts              hydrateAssignments() : jointures des affectations
+    actions/
+      common.ts                   ActionResult + ensureEditor() (garde de rôle)
+      plan.ts                     server actions d'édition du plan (rôle requis)
+      employees.ts                collaborateurs + affectation de position
+      assets.ts                   parc informatique + affectation / remise en stock
+    auth/
+      session.ts                  getCurrentUser() + type AppUser
+      actions.ts                  signIn / signOut (server actions)
+    supabase/
+      env.ts                      lecture/validation des variables d'env
+      client.ts                   client navigateur
+      server.ts                   client serveur (cookies)
+      admin.ts                    client serveur à clé secrète
+      middleware.ts               updateSession (utilisé par proxy.ts)
+    spatial/
+      zone-definitions.ts         référentiel des zones (codes, libellés)
+      cluster-layout.ts           GÉOMÉTRIE extraite de l'Excel (Phase 3)
+  types/
+    seat.ts                       SeatDTO + SeatStatus
+    plan.ts                       PlanLayout/Zone/Row/Seat/Annotation/Status
+    employee.ts                   Employee, EmployeeDetail, filtres
+    asset.ts                      PcAsset, PcAssetDetail, filtres
+    assignment.ts                 AssignmentLink (jonction)
+  docs/
+    audit-phase0.md               audit des sources
+    supabase-setup.md             procédure Supabase
+    cartographie-phase3.md        analyse géométrique Phase 3
+    PASSATION.txt                 ce document
+  .env.local                      secrets (gitignoré) — ne jamais commiter
+  .env.example                    modèle sans secret
+  PROJECT_STATUS.md               suivi d'étapes et problèmes connus
+
+
+--------------------------------------------------------------------------------
+6. THÈME ET CONVENTIONS VISUELLES
+--------------------------------------------------------------------------------
+
+  - Thème sombre premium par défaut (pas de thème clair pour l'instant).
+  - Tokens définis dans app/globals.css : --color-ink-950/900/800/700,
+    --color-line, --color-text/-dim/-faint, --color-accent,
+    --color-accent-strong, --color-positive, --color-negative,
+    --color-warning, et les états de poste --color-se-*.
+  - La couleur seule ne porte JAMAIS une information : toujours un libellé
+    (et/ou une icône, un motif) en plus.
+  - Composants réutilisables pilotés par variantes (cva) ; pas de styles
+    inline ad hoc.
+
+
+--------------------------------------------------------------------------------
+7. ÉTAT DES ÉTAPES
+--------------------------------------------------------------------------------
+
+  PHASE 0  — Audit                                  Validée
+  PHASE 1  — Fondations                             Validée
+  PHASE 2  — Système visuel                         Validée
+  PHASE 3  — Analyse et prototype cartographie      Réalisée — en attente de validation
+  PHASE 4  — Base de données et authentification    Validée
+  PHASE 5  — Cartographie interactive connectée     Réalisée — en attente de validation
+  PHASE 6  — Collaborateurs et équipements          Réalisée — en attente de validation
+  PHASE 7  — Import Excel et CSV                    À faire
+  PHASE 8  — Maintenance et rapports                À faire
+  PHASE 9  — Tests de bout en bout et sécurité      À faire
+  PHASE 10 — Déploiement cloud                      À faire
+
+Détail complet dans PROJECT_STATUS.md.
+
+
+--------------------------------------------------------------------------------
+8. RÉFÉRENCES DES SOURCES (ne pas confondre)
+--------------------------------------------------------------------------------
+
+  Feuille de calcul sans titre.xlsx
+      Référence géométrique UNIQUE (feuille "Cartographie", 91x45, 65 fusions,
+      23 ancrages d'images). C'est elle qui fait foi.
+
+  cartographie-cluster.html
+      Source de DONNÉES (zones, codes, totaux) et INSPIRATION UI uniquement.
+      Sa génération de sièges ne doit PAS être reprise.
+
+  CARTOGRAPHIE DES POSITIONS_CNTO_2025.zip
+      Sources secondaires : Inventaire, Maintenance PC, Mapping (codes type
+      AN_Z1_R1), BDD, Récap IT.
+
+  docs/audit-phase0.md      Synthèse de l'analyse des sources + anomalies.
+  docs/cartographie-phase3.md  Extraction géométrique et volumétrie Phase 3.
+
+Éléments structurants connus :
+  - 4 blocs de colonnes : L (C + D->M), M1 (P + Q->W), M2 (Z + AA->AG),
+    R (AI + AJ->AS).
+  - 2 ailes (AILE NORD, AILE SUD) + ESCALIER EST + Pantry + (COO) + boxes.
+  - 671 positions dessinées dans l'Excel (compteurs déclarés : sommes
+    divergentes, voir docs/cartographie-phase3.md §3).
+  - 6 statuts de poste dans types/seat.ts : OCCUPIED, FREE, UNAVAILABLE,
+    DAMAGED, MOVE_PLANNED, TO_VERIFY.
+
+
+--------------------------------------------------------------------------------
+9. PROBLÈMES CONNUS / ARBITRAGES RESTANTS
+--------------------------------------------------------------------------------
+
+  1. xlsx@0.18.5 : npm install remonte 26 vulnérabilités (dont 2 critiques),
+     probablement liées à cette version obsolète. À remplacer en Phase 7
+     (exceljs, read-excel-file, ou SheetJS via CDN/EE).
+  2. Dossier ~/package.json orphelin hors dépôt : warning Turbopack atténué par
+     turbopack.root dans next.config.ts ; suppression manuelle recommandée.
+  3. skills/, .claude/skills/, .windsurf/skills/ contiennent la doc Prisma alors
+     que Prisma est retiré : à supprimer après accord utilisateur.
+  4. Écarts de volumétrie (voir docs/cartographie-phase3.md §3) : plan dessiné
+     (671) vs compteurs Excel vs prototype (631) vs Récap IT (627).
+  5. Bloc central (lignes 25-34, libellés horizontaux) : géométrie à valider.
+  6. Grandes fusions vides et 23 ancrages d'images (6 PNG) : nature à identifier.
+  7. Zone 9 : compteur 90 vs 41 positions dessinées (écart -49).
+  8. `supabase link` échoue (compte CLI sans droits) : contourné en poussant les
+     migrations via `supabase db push --db-url` à travers le **Session pooler**
+     `aws-0-eu-west-1.pooler.supabase.com` (l'hôte direct `db.*` n'est qu'en IPv6).
+     Le mot de passe DB n'est stocké dans aucun fichier.
+
+
+--------------------------------------------------------------------------------
+10. PROCHAINE ÉTAPE (validation PHASE 6, puis PHASE 7)
+--------------------------------------------------------------------------------
+
+  1. Faire valider la PHASE 6 : /employees (liste, recherche/filtres, création)
+     et /employees/[id] (fiche, édition, activation/désactivation, affectation à
+     une position, historique) ; /assets et /assets/[id] (idem, affectation à un
+     collaborateur, remise en stock). Tous les écrans lisent la base (RLS +
+     can_edit()).
+  2. PHASE 7 — Import Excel et CSV : import des collaborateurs et du parc
+     informatique depuis les fichiers de référence (aperçu, rapport d'erreurs) ;
+     remplacer xlsx@0.18.5 (Problème #1).
+  3. PHASE 8 — Maintenance et rapports : tickets (maintenance_tickets) et
+     statistiques.
+
+Rappel : migrations déjà appliquées jusqu'à 20261009120400_pc_assets_status_check.sql.
+lib/spatial/cluster-layout.ts ne sert qu'à l'amorçage de la cartographie.
+
+
+--------------------------------------------------------------------------------
+11. CONVENTION DE REPRISE (pour une IA)
+--------------------------------------------------------------------------------
+
+À chaque session :
+
+  1. Lire PROJECT_STATUS.md, docs/PASSATION.txt, puis inspecter git status et
+     l'arborescence réelle.
+  2. Ne jamais supposer qu'une étape est terminée sans la vérifier
+     (lint / typecheck / build / exécution).
+  3. Ne pas commiter, ne pas modifier la géométrie de référence, ne pas
+     introduire de données fictives.
+  4. Mettre à jour PROJECT_STATUS.md (+ docs/PASSATION.txt si l'architecture
+     change) à la fin de chaque étape, puis attendre la validation.
+
+================================================================================

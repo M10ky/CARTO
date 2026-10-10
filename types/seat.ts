@@ -1,56 +1,40 @@
-import type { Seat, Row, Zone, Wing, SeatAssignment, Employee, PcAsset } from "@prisma/client";
+/**
+ * Représentation d'un poste telle qu'elle transite jusqu'au front.
+ *
+ * Ce type est volontairement indépendant de toute librairie d'accès aux
+ * données : le mapping depuis Supabase sera écrit en Phase 5, une fois le
+ * schéma relationnel validé.
+ */
+
+export type SeatKind = "PERSON" | "SPACE";
 
 /**
- * Représentation "aplatie" d'un poste telle qu'utilisée par le front
- * (cartographie), reconstituée à partir des relations Prisma.
- * Évite de faire transiter les objets Prisma bruts (imbriqués) jusqu'aux
- * composants clients.
+ * États fonctionnels d'une position.
+ * La correspondance visuelle (couleur + icône + libellé) est définie dans
+ * `app/globals.css` — jamais la couleur seule ne porte l'information.
+ * Les valeurs réelles seront paramétrées en base (table `seat_statuses`).
  */
-export type SeatWithContext = Seat & {
-  row: Row & {
-    zone: Zone & {
-      wing: Wing;
-    };
-  };
-  assignments: (SeatAssignment & {
-    employee: Employee | null;
-    pcAsset: PcAsset | null;
-  })[];
-};
+export type SeatStatus =
+  | "OCCUPIED"
+  | "FREE"
+  | "UNAVAILABLE"
+  | "DAMAGED"
+  | "MOVE_PLANNED"
+  | "TO_VERIFY";
 
 export type SeatDTO = {
+  /** Identifiant stable, persisté en base. */
   id: string;
+  /** Code lisible, ex. `AN-Z1-R1-003`. */
   code: string;
-  kind: Seat["kind"];
-  status: Seat["status"];
+  kind: SeatKind;
+  status: SeatStatus;
   wingName: string;
+  zoneCode: string;
   zoneName: string;
-  zoneId: string;
   rowLabel: string;
   department: string | null;
   employeeName: string | null;
   employeeRole: string | null;
   pcHostname: string | null;
 };
-
-export function toSeatDTO(seat: SeatWithContext): SeatDTO {
-  const activeAssignment = seat.assignments.find((a) => a.active);
-  return {
-    id: seat.id,
-    code: seat.code,
-    kind: seat.kind,
-    status: seat.status,
-    wingName: seat.row.zone.wing.name,
-    zoneName: seat.row.zone.name,
-    zoneId: seat.row.zone.id,
-    rowLabel: seat.row.label,
-    department: seat.row.zone.department,
-    employeeName: activeAssignment?.employee
-      ? [activeAssignment.employee.firstName, activeAssignment.employee.lastName]
-          .filter(Boolean)
-          .join(" ")
-      : null,
-    employeeRole: activeAssignment?.employee?.role ?? null,
-    pcHostname: activeAssignment?.pcAsset?.hostname ?? null,
-  };
-}

@@ -1,34 +1,68 @@
-# Phase 1 — Base de données & Prisma
+# Cartographie du Cluster CNTO
 
-## Fichiers livrés
-- `prisma/schema.prisma` — modèle de données complet (Wing, Zone, Row, Seat, Employee, PcAsset, SeatAssignment, MaintenanceLog, ImportSession, StagingPcRow)
-- `prisma/seed/seed.ts` — reconstruit la structure spatiale réelle du cluster (ailes/zones/rangées/postes), tous les postes en `VACANT`
-- `lib/db/prisma.ts` — client Prisma singleton (sûr en dev avec le hot-reload de Next.js)
-- `types/seat.ts` — DTO `SeatDTO` + fonction `toSeatDTO()` pour aplatir les relations Prisma côté front
-- `.env.example` — modèle de variable `DATABASE_URL`
+Application web interne pour la cartographie physique du Cluster CNTO, la gestion des
+positions de travail, des collaborateurs, du parc informatique et des opérations de
+maintenance.
 
-## Mise en place
+## Stack
 
-1. Copier ces fichiers dans l'arborescence générée par `setup_project.sh` (ils remplacent les fichiers vides correspondants).
-2. `cp .env.example .env` puis renseigner ta vraie `DATABASE_URL`.
-3. Ajouter dans `package.json` :
-   ```json
-   "prisma": {
-     "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed/seed.ts"
-   }
-   ```
-   (installer `ts-node` en dev : `npm install -D ts-node`)
-4. Lancer :
-   ```bash
-   npx prisma migrate dev --name init
-   npx prisma db seed
-   npx prisma studio   # pour vérifier visuellement les données
-   ```
+| Domaine | Choix |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, TypeScript strict, Tailwind CSS v4 |
+| Cartographie | SVG (architecture prévue : données spatiales / règles métier / rendu / interactions séparés) |
+| Backend & données | **Supabase** — PostgreSQL, Supabase Auth, Row Level Security |
+| Migrations | SQL versionnées dans `supabase/migrations/` (CLI Supabase) |
+| Imports | `.xlsx` et `.csv`, avec aperçu, validation, détection de doublons et confirmation |
+| Qualité | ESLint, `tsc --noEmit`, tests (à partir de la Phase 9) |
 
-## Vérifications attendues
-- La migration crée bien les 10 tables (`wings`, `zones`, `rows`, `seats`, `employees`, `pc_assets`, `seat_assignments`, `maintenance_logs`, `import_sessions`, `staging_pc_rows`).
-- Le seed crée 3 ailes, 14 zones, et un total de **~633 postes** répartis (correspond au volumétrie du prototype HTML).
-- `prisma studio` permet de parcourir `Seat` → `Row` → `Zone` → `Wing` sans erreur de relation.
+## Démarrage
 
----
-Une fois validé, dis-moi **"Prêt pour la Phase 2"** pour le pipeline d'import Excel.
+```bash
+npm install
+npm run dev          # http://localhost:3000
+```
+
+## Scripts
+
+| Commande | Rôle |
+|---|---|
+| `npm run dev` | serveur de développement |
+| `npm run build` | build de production |
+| `npm run start` | serveur de production |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | vérification TypeScript stricte |
+
+## Structure
+
+```
+app/            routes et pages (App Router)
+lib/spatial/    géométrie du plan — données spatiales pures, sans UI
+lib/…           fonctionnalités métier, accès données, validateurs, utilitaires
+types/          types TypeScript partagés (aucune dépendance d'accès aux données)
+supabase/       migrations SQL + configuration (PHASE 4)
+components/     composants d'interface (PHASE 2+)
+docs/           audit, décisions, procédures
+```
+
+Règle d'or : **la géométrie du plan est séparée du rendu** — modifier le thème ne
+doit jamais déplacer un poste.
+
+## Sources de référence
+
+| Fichier | Rôle |
+|---|---|
+| `Feuille de calcul sans titre.xlsx` | **Référence géométrique unique** de la disposition physique |
+| `cartographie-cluster.html` | Prototype : source de données + inspiration UI (**pas** de référence de géométrie) |
+| `CARTOGRAPHIE DES POSITIONS_CNTO_2025.zip` | Inventaires, maintenance, mapping poste ↔ service |
+
+## Documentation
+
+- [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) — état d'avancement, décisions, problèmes connus
+- [`docs/audit-phase0.md`](./docs/audit-phase0.md) — audit des sources et de la disposition
+- [`docs/supabase-setup.md`](./docs/supabase-setup.md) — création et sécurisation de la base
+
+## Sécurité
+
+- Les autorisations sont appliquées **en base (RLS)** et **côté serveur**, pas seulement dans l'interface.
+- Aucune clé secrète côté navigateur ; `.env*` est gitignoré.
+- Les opérations sensibles sont journalisées (PHASE 4+).

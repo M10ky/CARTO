@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", monospace;
+}
+
+@theme {
+  /* ---- Socle : surfaces ---- */
+  --color-ink-950: #060c16;
+  --color-ink-900: #0a1424;
+  --color-ink-800: #0e1b30;
+  --color-ink-700: #132444;
+  --color-line: #1d3352;
+
+  /* ---- Socle : texte ---- */
+  --color-text: #e8eef8;
+  --color-text-dim: #9cb0cc;
+  --color-text-faint: #63779a;
+
+  /* ---- Accent & actions ---- */
+  --color-accent: #3fd3e6;
+  --color-accent-strong: #67e0ef;
+  --color-positive: #3ecf8e;
+  --color-negative: #f2617a;
+  --color-warning: #f2b466;
+
+  /* ---- États d'une position (jamais seul : icône + libellé + motif) ---- */
+  --color-se-occupied: #3fd3e6;
+  --color-se-free: #f2b466;
+  --color-se-off: #7e8ca6;
+  --color-se-damaged: #f2617a;
+  --color-se-move: #8b7cf6;
+  --color-se-check: #e8c547;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background-color: var(--color-ink-950);
+}
+
+body {
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+}
