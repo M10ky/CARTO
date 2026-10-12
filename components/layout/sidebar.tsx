@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/utils/cn";
-import { NAV_ITEMS } from "@/lib/constants/nav";
+import { NAV_ITEMS, TOOL_ITEMS, matchesPath } from "@/lib/constants/nav";
 
 export function Sidebar({
   className,
@@ -45,11 +45,7 @@ export function Sidebar({
         </p>
         <ul className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
-            const active =
-              item.href === "/"
-                ? pathname === "/"
-                : pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+            const active = matchesPath(pathname, item.href);
             const Icon = item.icon;
 
             return (
@@ -83,6 +79,43 @@ export function Sidebar({
             );
           })}
         </ul>
+
+        <p className="px-3 pb-2 pt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-text-faint">
+          Outils
+        </p>
+        <ul className="flex flex-col gap-1">
+          {TOOL_ITEMS.map((item) => {
+            const active = matchesPath(pathname, item.href);
+            const Icon = item.icon;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "group flex items-center gap-3 rounded border-l-2 px-3 py-2 text-sm transition-colors",
+                    active
+                      ? "border-accent bg-ink-700 text-text"
+                      : "border-transparent text-text-dim hover:bg-ink-800 hover:text-text",
+                  )}
+                >
+                  <Icon
+                    aria-hidden
+                    className={cn(
+                      "size-4 shrink-0",
+                      active
+                        ? "text-accent"
+                        : "text-text-faint group-hover:text-text-dim",
+                    )}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       <div className="border-t border-line px-4 py-3">
@@ -90,7 +123,7 @@ export function Sidebar({
           État
         </p>
         <p className="mt-1 text-xs text-text-dim">
-          Phase 2 — système visuel
+          Phase 8 — maintenance et rapports
         </p>
       </div>
     </div>

@@ -13,7 +13,7 @@ maintenance.
 | Backend & données | **Supabase** — PostgreSQL, Supabase Auth, Row Level Security |
 | Migrations | SQL versionnées dans `supabase/migrations/` (CLI Supabase) |
 | Imports | `.xlsx` et `.csv`, avec aperçu, validation, détection de doublons et confirmation |
-| Qualité | ESLint, `tsc --noEmit`, tests (à partir de la Phase 9) |
+| Qualité | ESLint, `tsc --noEmit`, tests de sécurité et de bout en bout (`node --test`) |
 
 ## Démarrage
 
@@ -31,6 +31,9 @@ npm run dev          # http://localhost:3000
 | `npm run start` | serveur de production |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | vérification TypeScript stricte |
+| `npm test` | tests de sécurité puis de bout en bout |
+| `npm run test:security` | tests RLS/sécurité (Supabase live + statique) |
+| `npm run test:e2e` | tests HTTP (rebuild puis serveur de production) |
 
 ## Structure
 
@@ -41,6 +44,7 @@ lib/…           fonctionnalités métier, accès données, validateurs, utilit
 types/          types TypeScript partagés (aucune dépendance d'accès aux données)
 supabase/       migrations SQL + configuration (PHASE 4)
 components/     composants d'interface (PHASE 2+)
+tests/          tests de sécurité et de bout en bout (PHASE 9)
 docs/           audit, décisions, procédures
 ```
 
@@ -60,6 +64,7 @@ doit jamais déplacer un poste.
 - [`PROJECT_STATUS.md`](./PROJECT_STATUS.md) — état d'avancement, décisions, problèmes connus
 - [`docs/audit-phase0.md`](./docs/audit-phase0.md) — audit des sources et de la disposition
 - [`docs/supabase-setup.md`](./docs/supabase-setup.md) — création et sécurisation de la base
+- [`docs/tests-phase9.md`](./docs/tests-phase9.md) — suite de tests sécurité et bout en bout
 
 ## Sécurité
 

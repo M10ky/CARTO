@@ -132,3 +132,30 @@ export async function listAssetTypes(): Promise<string[]> {
   }
   return [...types];
 }
+
+export type AssetOption = {
+  id: string;
+  assetTag: string | null;
+  model: string | null;
+};
+
+export async function listAssetOptions(): Promise<AssetOption[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("pc_assets")
+    .select("id, asset_tag, model")
+    .eq("is_active", true)
+    .order("asset_tag", { ascending: true, nullsFirst: false })
+    .limit(2000);
+
+  if (error) {
+    throw new Error(`Lecture du parc impossible : ${error.message}`);
+  }
+  return (
+    (data ?? []) as { id: string; asset_tag: string | null; model: string | null }[]
+  ).map((row) => ({
+    id: row.id,
+    assetTag: row.asset_tag,
+    model: row.model,
+  }));
+}

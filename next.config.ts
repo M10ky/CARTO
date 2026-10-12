@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  experimental: {
+    serverActions: {
+      // Les fichiers d'import (Excel/CSV) dépassent la limite par défaut (1 Mo).
+      bodySizeLimit: "10mb",
+    },
+  },
 };
 
 export default nextConfig;

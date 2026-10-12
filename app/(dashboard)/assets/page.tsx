@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Upload } from "lucide-react";
 
 import { AssetTable } from "@/components/assets/asset-table";
 import { NewAsset } from "@/components/assets/new-asset";
 import { FilterBar, FilterField } from "@/components/inventory/filter-bar";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { PC_STATUSES } from "@/lib/constants/inventory";
 import { listAssetTypes, listPcAssets } from "@/lib/data/assets";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = { title: "Parc informatique" };
 
@@ -50,6 +54,19 @@ export default async function AssetsPage({
         title="Parc informatique"
         description="Inventaire des ordinateurs et de leurs affectations aux collaborateurs."
         badge={<Badge tone="accent">{assets.length} résultat(s)</Badge>}
+        actions={
+          canEdit ? (
+            <Link
+              href="/import?kind=assets"
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" }),
+              )}
+            >
+              <Upload aria-hidden className="size-3.5" />
+              Importer
+            </Link>
+          ) : null
+        }
       />
 
       <div className="flex flex-col gap-4">

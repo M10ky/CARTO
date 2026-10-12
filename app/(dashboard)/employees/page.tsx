@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Upload } from "lucide-react";
 
 import { EmployeeTable } from "@/components/employees/employee-table";
 import { FilterBar, FilterField } from "@/components/inventory/filter-bar";
 import { NewEmployee } from "@/components/employees/new-employee";
 import { PageHeader } from "@/components/layout/page-header";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { listEmployees, listServices } from "@/lib/data/employees";
+import { cn } from "@/lib/utils/cn";
 
 export const metadata: Metadata = { title: "Collaborateurs" };
 
@@ -47,6 +51,19 @@ export default async function EmployeesPage({
         title="Collaborateurs"
         description="Référentiel des collaborateurs et de leurs affectations à une position."
         badge={<Badge tone="accent">{employees.length} résultat(s)</Badge>}
+        actions={
+          canEdit ? (
+            <Link
+              href="/import?kind=employees"
+              className={cn(
+                buttonVariants({ variant: "secondary", size: "sm" }),
+              )}
+            >
+              <Upload aria-hidden className="size-3.5" />
+              Importer
+            </Link>
+          ) : null
+        }
       />
 
       <div className="flex flex-col gap-4">

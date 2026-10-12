@@ -12,22 +12,26 @@
 |---|---|
 | PHASE 0 — Audit et compréhension | **Validée** |
 | PHASE 1 — Arborescence et fondations | **Validée** (voir §Commandes) |
-| PHASE 2 — Système visuel | **Réalisée — en attente de validation** |
-| PHASE 3 — Analyse et prototype de la cartographie | **Réalisée — en attente de validation** |
+| PHASE 2 — Système visuel | **Validée** |
+| PHASE 3 — Analyse et prototype de la cartographie | **Validée** |
 | PHASE 4 — Base de données et authentification | **Validée** |
 | PHASE 5 — Cartographie interactive connectée | **Validée** |
-| PHASE 6 — Collaborateurs et équipements | **Réalisée — en attente de validation** |
-| PHASE 7 — Import Excel et CSV | À faire |
-| PHASE 8 — Maintenance et rapports | À faire |
-| PHASE 9 — Tests de bout en bout et sécurité | À faire |
+| PHASE 6 — Collaborateurs et équipements | **Validée** |
+| PHASE 7 — Import Excel et CSV | **Validée** |
+| PHASE 8 — Maintenance et rapports | **Validée** |
+| PHASE 9 — Tests de bout en bout et sécurité | **Réalisée — en attente de validation** |
 | PHASE 10 — Déploiement cloud | À faire |
 
-**Étape actuelle :** PHASE 6 réalisée — les modules Collaborateurs et Parc
-informatique sont connectés à la base (`employees`, `pc_assets`, `assignments`) :
-listes avec recherche/filtres, fiches détaillées, création/modification,
-activation/désactivation et affectations (position ↔ collaborateur ↔ équipement).
-Validation requise avant la PHASE 7.
-Fiche de passation complète : `docs/PASSATION.txt`.
+**Étape actuelle :** PHASE 9 **réalisée** — suite de tests automatisés avec le
+runner natif `node --test` (aucune dépendance ajoutée) : tests **sécurité/RLS**
+(`tests/security/`) sur la base live (anonyme, `VIEWER`, `MANAGER`, `ADMIN`,
+anti-escalade, `audit_log`) et analyse statique (clé secrète absente du dépôt et
+du bundle client, RLS déclarée partout) ; tests **bout en bout HTTP**
+(`tests/e2e/`) des redirections anonymes et du rendu par rôle, serveur de
+production lancé automatiquement. Vérifié : `lint`, `typecheck`, `build`
+(15 routes), `npm run test:security` 10/10, `npm run test:e2e` 4/4.
+Validation requise avant la PHASE 10.
+Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
 ---
 
@@ -44,7 +48,7 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 - Palette « premium dark » posée en tokens CSS.
 - 78 fichiers vides + `setup.sh` + `README.md` (erroné) supprimés.
 
-### PHASE 2 — Système visuel (réalisée, en attente de validation)
+### PHASE 2 — Système visuel (validée)
 - Coquille applicative : sidebar (navigation 7 modules, `aria-current`, tiroir
   mobile fermable via Échap / clic / navigation), header (recherche globale
   désactivée, profil « non connecté » assumé).
@@ -57,7 +61,7 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 - `shadcn` (CLI, inutile au runtime) et `tw-animate-css` retirés du `package.json`.
 - **Passation :** `docs/PASSATION.txt` rédigée.
 
-### PHASE 3 — Analyse et prototype de la cartographie (réalisée, en attente de validation)
+### PHASE 3 — Analyse et prototype de la cartographie (validée)
 - Extraction **programmatique** de la géométrie depuis le XML du `.xlsx`
   (cellules, valeurs, remplissages, 65 fusions, ancrages d'images) — aucun relevé manuel.
 - `lib/spatial/cluster-layout.ts` : 4 blocs, **671 positions** dessinées,
@@ -71,7 +75,7 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 - **7 zones correspondent exactement** aux compteurs Excel (Z4B, Z8, Z7, Z6, Z5,
   Box 3, Box 4, Box 5) → méthode validée ; écarts expliqués/à trancher pour les autres.
 
-### PHASE 4 — Base de données et authentification (réalisée, en attente de validation)
+### PHASE 4 — Base de données et authentification (validée)
 - Projet Supabase : `https://uzifoigvupiknwimkfce.supabase.co`.
 - Dépendances ajoutées : `@supabase/supabase-js`, `@supabase/ssr`.
 - **Cartographie entièrement éditable en base** (exigence utilisateur : renommer
@@ -96,7 +100,7 @@ Fiche de passation complète : `docs/PASSATION.txt`.
   `seat_statuses` 6 ; accès anonyme refusé (`[]`).
 - Premier utilisateur créé : `miokyrakotoarivelo@gmail.com` (profil `ADMIN`).
 
-### PHASE 5 — Cartographie interactive connectée (réalisée, en attente de validation)
+### PHASE 5 — Cartographie interactive connectée (validée)
 - **Lecture base** : `lib/data/spatial.ts` → `getPlanLayout()` lit `zones`,
   `zone_rows`, `seats`, `plan_annotations` et `seat_statuses` via le client serveur
   Supabase (cookies/RLS), mappe snake_case → camelCase (`types/plan.ts`) et lève
@@ -117,7 +121,7 @@ Fiche de passation complète : `docs/PASSATION.txt`.
   la volumétrie réelle (`declaredPositions` vs positions en base) et
   n'autorise l'édition qu'aux rôles habilités (sinon consultation seule).
 
-### PHASE 6 — Collaborateurs et équipements (réalisée, en attente de validation)
+### PHASE 6 — Collaborateurs et équipements (validée)
 - **Types métier** : `types/employee.ts`, `types/asset.ts`, `types/assignment.ts`
   (camelCase, découplés de Supabase).
 - **Couche données** : `lib/data/employees.ts` (`listEmployees`, `getEmployeeDetail`,
@@ -143,6 +147,93 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 - **Migration** `20261009120400_pc_assets_status_check.sql` : contrainte de
   domaine sur `pc_assets.status` (`UNKNOWN`, `IN_USE`, `IN_STOCK`, `MAINTENANCE`,
   `RETIRED`), appliquée via Session pooler.
+
+### PHASE 7 — Import Excel et CSV (validée)
+- **Dépendance** : `xlsx@0.18.5` (26 vulnérabilités, 2 critiques) **remplacé par
+  `exceljs@4.4.0`** dans `package.json` (Problème #1). `exceljs` n'est utilisé
+  que côté serveur (parsing + génération du modèle).
+- **Couche import** (`lib/import/`) :
+  - `types.ts` — `ImportKind`, `ImportRow`, `ColumnMapping`, `PreviewRow`,
+    `PreviewResult`, `AnalyzeResult`, `CommitResult`.
+  - `fields.ts` — schémas de colonnes par type (`employees`, `assets`) avec
+    **alias d'en-têtes** (normalisation accents/casse/ponctuation), libellés du
+    modèle, normalisation des statuts et types d'équipement.
+  - `parse.ts` — lit un `File` : `.xlsx`/`.xlsm` via `exceljs` (première feuille,
+    en-tête = première ligne non vide) et `.csv`/`.txt` via un parseur dédié
+    (détection du séparateur `;`/`,`/tab/`|`, guillemets, BOM, lignes vides).
+  - `validate.ts` — `mapColumns`, `buildPreview` (mapping, validation par ligne,
+    détection des doublons) et constructeurs de charges utiles DB
+    (`toEmployeeData`/`toEmployeePatch`, `toAssetData`/`toAssetPatch`).
+  - `template.ts` — génère le classeur modèle `.xlsx` (en-têtes, colonne large).
+- **Server actions** (`lib/actions/import.ts`) : `analyzeImport` (parse + aperçu,
+  fichier reçu en `FormData`) et `commitImport` (revalidation serveur, dédup,
+  partition création/mise à jour, insertion par lots avec repli ligne à ligne,
+  rapport). Garde de rôle partagée `ensureEditor()` (`ADMIN`/`MANAGER`).
+- **Import idempotent** : collaborateurs dédupliqués par `matricule`, parc par
+  `asset_tag` ; les lignes existantes sont **mises à jour** uniquement sur les
+  champs fournis (`toEmployeePatch`/`toAssetPatch` ne réécrivent pas les champs
+  absents).
+- **Écran `/import`** : `components/import/import-workbench.tsx` (sélection du
+  type, dépôt de fichier, analyse, correspondance des colonnes, aperçu plafonné
+  à 100 lignes avec statut par ligne, import, rapport d'erreurs) + lien de
+  téléchargement du modèle.
+- **Téléchargement du modèle** : `app/api/import/template/route.ts`
+  (`GET ?kind=employees|assets`, réservé `ADMIN`/`MANAGER`).
+- **Taille de corps** : `next.config.ts` → `experimental.serverActions.bodySizeLimit = "10mb"`.
+- **Navigation** : groupe « Outils » dans la sidebar (`TOOL_ITEMS` →
+  `/import`) ; liens « Importer » ajoutés en en-tête des écrans `/employees` et
+  `/assets`. Les 7 modules A–G restent inchangés.
+
+### PHASE 8 — Maintenance et rapports (validée)
+- **Modèle** : table `maintenance_tickets` déjà créée en Phase 4 (RLS active) —
+  **aucune migration nécessaire**. Référence lisible générée
+  (`TCK-AAAAMMJJ-XXXX`), statuts `OPEN`/`IN_PROGRESS`/`WAITING`/`RESOLVED`/
+  `CLOSED`, priorités `LOW`/`NORMAL`/`HIGH`/`URGENT`.
+- **Types & constantes** : `types/maintenance.ts`, `lib/constants/maintenance.ts`
+  (libellés, tons, `isClosedStatus`, helpers de libellé/tons).
+- **Couche données** : `lib/data/maintenance.ts` (`listMaintenanceTickets`,
+  `getMaintenanceTicket`, hydratation équipement/collaborateur/position),
+  `lib/data/reports.ts` (`getReportsOverview`), `listAssetOptions()` ajouté à
+  `lib/data/assets.ts`.
+- **Actions serveur** : `lib/actions/maintenance.ts` — `createMaintenanceTicket`,
+  `updateMaintenanceTicket`, `setMaintenanceStatus` ; validation serveur
+  (intitulé obligatoire, codes autorisés) ; gestion de `closed_at` à la
+  clôture/réouverture ; garde `ADMIN`/`MANAGER` (`ensureEditor`).
+- **Écrans** :
+  - `/maintenance` : liste (recherche + filtres statut/priorité), création.
+  - `/maintenance/[id]` : cycle de vie en un clic, formulaire d'édition, ou
+    fiche en lecture seule selon le rôle.
+  - `/reports` : cartes (zones, positions, collaborateurs, équipements, tickets)
+    et répartitions (positions par état, équipements par statut/type, tickets
+    par statut/priorité) calculées depuis la base.
+  - `/` (**Module A — Tableau de bord**) : cartes (zones, positions
+    occupées/libres, collaborateurs, équipements, équipements en maintenance,
+    interventions en cours), répartitions et « Dernières interventions » ;
+    réutilise `getReportsOverview()` et `listRecentMaintenanceTickets()`.
+    Composants `StatCard`/`BreakdownList` partagés (`components/overview/`).
+- **Sécurité** : lecture `authenticated` (RLS), écriture `ADMIN`/`MANAGER`
+  (code + RLS).
+- Détail : `docs/maintenance-phase8.md`.
+
+### PHASE 9 — Tests de bout en bout et sécurité (réalisée, en attente de validation)
+- **Runner** : `node --test` (aucune dépendance ajoutée). Deux suites :
+  `tests/security/` (sans serveur : Supabase en direct + statique) et
+  `tests/e2e/` (serveur de production lancé automatiquement).
+- **Sécurité/RLS** (`tests/security/rls.test.mjs`) : anonyme (0 lecture sur les
+  11 tables, écriture refusée) ; `VIEWER` (lecture plan OK, écriture et
+  auto-promotion refusées) ; `MANAGER` (écriture métier OK, administration et
+  `audit_log` refusés) ; `ADMIN` (journal lisible, gestion des rôles) ;
+  anti-escalade refusée **même via la clé serveur**.
+- **Statique** (`tests/security/static.test.mjs`) : RLS déclarée sur chaque
+  table, aucune migration ne désactive RLS, clé secrète absente de tout fichier
+  versionné et du bundle `.next/static`.
+- **Bout en bout** (`tests/e2e/routes.test.mjs`) : redirections anonymes
+  (307 → `/login?redirectTo=…`) sur les 8 routes protégées ; rendu par rôle
+  (`VIEWER` en lecture sans contrôle de création, `MANAGER` avec édition et
+  workbench d'import).
+- **Isolation** : utilisateurs temporaires créés puis supprimés ; aucune écriture
+  sur la géométrie de référence ; enregistrements de test nettoyés.
+- Détail : `docs/tests-phase9.md`.
 
 ---
 
@@ -383,6 +474,114 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 
 ---
 
+## Fichiers créés ou modifiés (PHASE 7)
+
+**Créés**
+- `lib/import/types.ts`, `lib/import/fields.ts`, `lib/import/parse.ts`,
+  `lib/import/validate.ts`, `lib/import/template.ts`.
+- `lib/actions/import.ts` — `analyzeImport`, `commitImport`.
+- `components/import/import-workbench.tsx` — écran d'import client.
+- `app/(dashboard)/import/page.tsx` — écran serveur `/import`.
+- `app/api/import/template/route.ts` — génération/téléchargement du modèle.
+- `docs/import-phase7.md` — documentation du module d'import (schémas, flux,
+  alias, idempotence, limites).
+
+**Modifiés**
+- `package.json` — `xlsx` retiré, `exceljs@4.4.0` ajouté.
+- `next.config.ts` — `experimental.serverActions.bodySizeLimit = "10mb"`.
+- `lib/constants/nav.ts` — `NavLink`, `TOOL_ITEMS` (`/import`), `matchesPath`,
+  `findNavItem` élargi aux outils.
+- `components/layout/sidebar.tsx` — groupe « Outils » + pied de page « Phase 7 ».
+- `app/(dashboard)/employees/page.tsx`, `app/(dashboard)/assets/page.tsx` —
+  lien « Importer » en en-tête (selon le rôle).
+
+---
+
+## Commandes exécutées et résultats (PHASE 7)
+
+| Commande | Résultat |
+|---|---|
+| `npm run lint` | ✅ exit 0 |
+| `npm run typecheck` (`tsc --noEmit`) | ✅ exit 0 |
+| `npm run build` | ✅ 13 routes — `/import` et `/api/import/template` ajoutées |
+| Routes anonymes (`/import`, `/api/import/template`) | ✅ 307 vers `/login?redirectTo=…` |
+| Test d'analyse/parsing (route temporaire non versionnée, supprimée) | ✅ 15/15 — lecture CSV (séparateur `;`, accents), mapping en-têtes, normalisation statut/type, doublons, aller-retour `.xlsx` du modèle |
+| Test d'écriture en base (route temporaire non versionnée, supprimée) | ✅ 10/10 — `insert`/`update` collaborateurs + parc avec les charges utiles réelles, patch partiel sans écrasement, nettoyage vérifié (aucune donnée de test persistée) |
+
+> Les routes temporaires de test ont été supprimées et le `middleware` remis à
+> l'état d'origine (aucun diff).
+
+---
+
+## Fichiers créés ou modifiés (PHASE 8)
+
+**Créés**
+- `types/maintenance.ts` — `MaintenanceTicket`, `MaintenanceFilters`, statuts/priorités.
+- `lib/constants/maintenance.ts` — statuts, priorités, tons, `isClosedStatus`, helpers.
+- `lib/data/maintenance.ts` — `listMaintenanceTickets`, `getMaintenanceTicket`, hydratation.
+- `lib/data/reports.ts` — `getReportsOverview` (`StatBreakdown`, `ReportsOverview`).
+- `lib/actions/maintenance.ts` — `createMaintenanceTicket`, `updateMaintenanceTicket`, `setMaintenanceStatus`.
+- `components/maintenance/ticket-form.tsx`, `new-ticket.tsx`, `ticket-table.tsx`, `ticket-status-controls.tsx`.
+- `components/overview/stat-card.tsx`, `components/overview/breakdown-list.tsx` — composants de statistiques partagés.
+- `app/(dashboard)/maintenance/[id]/page.tsx` — fiche intervention.
+- `docs/maintenance-phase8.md` — documentation de la phase.
+
+**Modifiés**
+- `app/(dashboard)/maintenance/page.tsx` — placeholder → écran connecté.
+- `app/(dashboard)/reports/page.tsx` — placeholder → statistiques (utilise les composants partagés).
+- `app/(dashboard)/page.tsx` — placeholder (Module A) → **Tableau de bord connecté**.
+- `lib/data/maintenance.ts` — ajout `listRecentMaintenanceTickets()` (flux d'activité).
+- `lib/data/assets.ts` — ajout `listAssetOptions()`.
+- `components/layout/sidebar.tsx` — pied de page « Phase 8 ».
+
+**Aucune migration** : `maintenance_tickets` et sa RLS existaient déjà (Phase 4).
+
+---
+
+## Commandes exécutées et résultats (PHASE 8)
+
+| Commande | Résultat |
+|---|---|
+| `npm run lint` | ✅ exit 0 |
+| `npm run typecheck` (`tsc --noEmit`) | ✅ exit 0 |
+| `npm run build` | ✅ 15 routes — `/maintenance/[id]` ajoutée |
+| Routes anonymes (`/maintenance`, `/maintenance/[id]`, `/reports`) | ✅ 307 vers `/login?redirectTo=…` |
+| Test base (script temporaire non versionné, supprimé) | ✅ 13/13 — colonnes des requêtes, insert/update/delete ticket, logique `closed_at`, aucune donnée laissée |
+| Test authentifié (utilisateur temporaire, supprimé) | ✅ `/maintenance` 200 (consultation), `/reports` 200, `/maintenance/[id]` 200 ; promotion de rôle refusée par le trigger anti-escalade (attendu) |
+| Test Tableau de bord (utilisateur temporaire, supprimé) | ✅ 10/10 — `/` 200, cartes et blocs rendus sur données réelles, `/reports` 200 avec composants partagés |
+
+---
+
+## Fichiers créés ou modifiés (PHASE 9)
+
+**Créés**
+- `tests/helpers.mjs` — chargement `.env.local`, clients Supabase, sessions, cookies, utilisateurs temporaires, attente serveur.
+- `tests/security/rls.test.mjs` — matrice RLS (anonyme, VIEWER, MANAGER, ADMIN, anti-escalade).
+- `tests/security/static.test.mjs` — RLS déclarée, absence de clé secrète (dépôt + bundle client).
+- `tests/e2e/routes.test.mjs` — redirections anonymes + rendu HTTP par rôle.
+- `docs/tests-phase9.md` — documentation de la suite de tests.
+
+**Modifiés**
+- `package.json` — scripts `test`, `test:security`, `test:e2e`.
+- `README.md` — ligne Qualité, scripts, arborescence (`tests/`), lien doc.
+- `PROJECT_STATUS.md`, `docs/PASSATION.txt` — suivi.
+
+**Aucune dépendance ajoutée** : runner natif `node --test`.
+
+---
+
+## Commandes exécutées et résultats (PHASE 9)
+
+| Commande | Résultat |
+|---|---|
+| `npm run lint` | ✅ exit 0 |
+| `npm run typecheck` (`tsc --noEmit`) | ✅ exit 0 |
+| `npm run build` | ✅ 15 routes |
+| `npm run test:security` | ✅ 10/10 (RLS + statique + bundle) |
+| `npm run test:e2e` | ✅ 4/4 (redirections anonymes + rendu par rôle) |
+
+---
+
 ## Décisions d'architecture déjà prises
 
 1. **Base de données : Supabase** (Postgres + Supabase Auth + RLS). Prisma abandonné —
@@ -435,13 +634,47 @@ Fiche de passation complète : `docs/PASSATION.txt`.
     `is_active = false` + `ended_at`). Aucune donnée métier de démonstration
     n'est insérée ; les listes vides sont assumées.
 
+15. **Import Excel/CSV (Phase 7)** : le fichier est lu **côté serveur** (server
+    actions) ; le mapping des colonnes se fait par **alias d'en-têtes
+    normalisés** (accents/casse/ponctuation ignorés), jamais par position fixe.
+    L'aperçu est **obligatoire** avant écriture ; toute écriture réapplique la
+    validation côté serveur (ne jamais faire confiance au client). L'import est
+    **idempotent** (dédup par clé métier — `matricule` / `asset_tag`) et les
+    mises à jour sont **partielles** (les colonnes absentes du fichier ne sont
+    pas écrasées). `exceljs` remplace `xlsx` ; il reste **serveur uniquement**.
+
+16. **Maintenance (Phase 8)** : un ticket est un **objet autonome** rattaché
+    *optionnellement* à un équipement, un collaborateur et/ou une position ; il
+    **ne modifie pas** automatiquement le statut de l'équipement (pour ne pas
+    entrer en conflit avec les affectations de la Phase 6). `closed_at` est
+    piloté par le statut (`RESOLVED`/`CLOSED` = clos) : positionné à la première
+    clôture, conservé tant que le ticket reste clos, remis à `null` à la
+    réouverture. Écriture réservée `ADMIN`/`MANAGER` (code + RLS).
+
+17. **Statistiques (Phase 8)** : `getReportsOverview()` agrège les compteurs
+    **côté serveur** à partir des données réelles (positions, collaborateurs,
+    équipements, tickets), sans table de synthèse ni données fictives. Les écrans
+    `/reports` (Module F) et `/` (**Tableau de bord, Module A**) partagent les
+    mêmes composants de présentation (`components/overview/`) — les libellés
+    d'état proviennent de la base (`seat_statuses`, statuts d'équipement) et non
+    du code. Le tableau de bord affiche en plus les dernières interventions via
+    `listRecentMaintenanceTickets()`.
+
+18. **Tests (Phase 9)** : runner **natif `node --test`**, sans dépendance. La
+    sécurité est vérifiée **au niveau base** (RLS) en plus du code applicatif ;
+    les utilisateurs temporaires à rôle privilégié sont créés via la clé
+    `service_role` (contournement documenté du trigger d'inscription) puis
+    supprimés. Les tests dépendant de la base sont **ignorés** si `.env.local`
+    est absent. La suite E2E démarre un serveur `next start` sur un port dédié
+    (ou réutilise `BASE_URL`) et ne touche jamais la géométrie de référence.
+
 ---
 
 ## Problèmes connus
 
 | # | Problème | Impact | Prévu à |
 |---|---|---|---|
-| 1 | `npm install` remonte **26 vulnérabilities (2 critiques)**, très probablement liées à `xlsx@0.18.5` (ancienne version npm, package déprécié côté SheetJS) | sécurité import | Phase 7 — remplacer par `xlsx` (SheetJS CDN/EE) ou `exceljs` / `read-excel-file` |
+| 1 | ~~`npm install` remonte 26 vulnérabilités (2 critiques) via `xlsx@0.18.5`~~ **Résolu Phase 7** : `xlsx` retiré, **`exceljs@4.4.0`** ajouté. `npm audit` restant (11 alertes) provient de l'outillage framework/CLI (`next`, `@modelcontextprotocol/sdk`…), hors périmètre import | — | résolu ; reste à traiter en Phase 10 si l'audit l'exige |
 | 2 | Dossier `~/package.json` + `~/package-lock.json` **orphelins hors dépôt** | warnings Turbopack | atténué via `turbopack.root` ; à supprimer côté utilisateur si acceptable |
 | 3 | `skills/`, `.claude/skills/`, `.windsurf/skills/` contiennent la **documentation Prisma** alors que Prisma est retiré | bruit, incohérence | à supprimer après accord |
 | 4 | ~~`shadcn` figurait dans `dependencies`~~ **Résolu Phase 2** : `shadcn` et `tw-animate-css` retirés | — | résolu |
@@ -459,12 +692,11 @@ Fiche de passation complète : `docs/PASSATION.txt`.
 
 ## Prochaines actions
 
-1. **Valider la PHASE 6** (collaborateurs + parc informatique : listes,
-   recherche/filtres, fiches, création/modification, affectations).
-2. **PHASE 7 — Import Excel et CSV** : import des collaborateurs et du parc
-   depuis les fichiers de référence, aperçu, rapport d'erreurs ; remplacer
-   `xlsx@0.18.5` (voir Problème #1).
-3. **PHASE 8 — Maintenance et rapports** : tickets (`maintenance_tickets`) et
-   statistiques.
+1. **Attendre la validation de la PHASE 9** (suite de tests sécurité + bout en
+   bout) avant de démarrer la PHASE 10.
+2. **PHASE 10 — Déploiement cloud** : hébergement, variables d'environnement,
+   en-têtes de sécurité, `npm audit`.
+3. Export CSV des statistiques et historique des imports : non implémentés
+   (voir `docs/maintenance-phase8.md` §7).
 4. Arbitrages restants : questions géométriques Phase 3 (`docs/cartographie-phase3.md` §6) ;
-   suppression des dossiers `skills/` Prisma.
+   suppression des dossiers `skills/` Prisma ; `npm audit` (voir Problème #1).

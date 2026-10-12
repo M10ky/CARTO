@@ -1,5 +1,6 @@
 import {
   ChartColumn,
+  FileSpreadsheet,
   LayoutDashboard,
   Map,
   Monitor,
@@ -9,11 +10,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type NavItem = {
+export type NavLink = {
   href: string;
   label: string;
   description: string;
   icon: LucideIcon;
+};
+
+export type NavItem = NavLink & {
   /** Module fonctionnel du cahier des charges. */
   module: "A" | "B" | "C" | "D" | "E" | "F" | "G";
 };
@@ -70,11 +74,24 @@ export const NAV_ITEMS: NavItem[] = [
   },
 ];
 
-export function findNavItem(pathname: string): NavItem | undefined {
-  if (pathname === "/") {
-    return NAV_ITEMS[0];
+export const TOOL_ITEMS: NavLink[] = [
+  {
+    href: "/import",
+    label: "Import Excel / CSV",
+    description: "Intégrer des données externes",
+    icon: FileSpreadsheet,
+  },
+];
+
+export function matchesPath(pathname: string, href: string): boolean {
+  if (href === "/") {
+    return pathname === "/";
   }
-  return NAV_ITEMS.filter((item) => item.href !== "/").find(
-    (item) => pathname === item.href || pathname.startsWith(`${item.href}/`),
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function findNavItem(pathname: string): NavLink | undefined {
+  return [...NAV_ITEMS, ...TOOL_ITEMS].find((item) =>
+    matchesPath(pathname, item.href),
   );
 }

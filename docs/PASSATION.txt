@@ -5,11 +5,15 @@ Application web de cartographie du Cluster CNTO
 
 Document de reprise de travail, destiné à toute personne (humaine ou assistante
 IA) qui reprend le projet. À lire avec PROJECT_STATUS.md (suivi d'étapes),
-docs/audit-phase0.md (audit des sources) et docs/cartographie-phase3.md.
+docs/audit-phase0.md (audit des sources), docs/cartographie-phase3.md,
+docs/import-phase7.md, docs/maintenance-phase8.md et docs/tests-phase9.md.
 
-Dernière mise à jour : PHASE 6 (modules Collaborateurs et Parc informatique
-connectés : listes, recherche/filtres, fiches, création/modification et
-affectations position <-> collaborateur <-> équipement).
+Dernière mise à jour : PHASE 9 (suite de tests automatisés avec le runner natif
+node --test : sécurité/RLS sur la base live — anonyme, VIEWER, MANAGER, ADMIN,
+anti-escalade — et tests bout en bout HTTP des redirections et du rendu par rôle ;
+aucune dépendance ajoutée).
+Phases 0 à 7 validées ; Phase 8 réalisée — en attente de validation.
+Détails : docs/import-phase7.md, docs/maintenance-phase8.md.
 
 
 --------------------------------------------------------------------------------
@@ -73,7 +77,7 @@ Ces règles viennent du prompt maître du projet ; elles sont non négociables.
   Variantes de classes . class-variance-authority
   Fusion de classes .... clsx + tailwind-merge (via lib/utils/cn.ts)
   Validation ........... zod 4.4.3
-  Import Excel ......... xlsx 0.18.5 (À REMPLACER, voir §9)
+  Import Excel ......... exceljs 4.4.0 (serveur uniquement ; remplace xlsx)
   Base de données ...... Supabase (Postgres + Supabase Auth + RLS)
   Accès données ........ @supabase/supabase-js + @supabase/ssr (installés Phase 4)
   Projet Supabase ...... https://uzifoigvupiknwimkfce.supabase.co
@@ -92,9 +96,12 @@ Prisma a été retiré du projet (aucun schéma écrit).
   npm run lint                ESLint
   npm run typecheck           tsc --noEmit
   npm run build               build de production
+  npm test                    tests sécurité puis bout en bout (node --test)
+  npm run test:security       tests RLS/sécurité (base live + statique)
+  npm run test:e2e            tests HTTP (rebuild puis next start)
 
 Ordre recommandé avant toute validation d'étape :
-  npm run lint && npm run typecheck && npm run build
+  npm run lint && npm run typecheck && npm run build && npm test
 
 Remarque : si typecheck remonte des erreurs dans .next/types/... après
 modification des routes, supprimer .next/ (rm -rf .next) puis relancer :
@@ -112,15 +119,19 @@ ce sont des types générés obsolètes, pas des erreurs de code.
       login/page.tsx              écran de connexion (hors AppShell)
     (dashboard)/
       layout.tsx                  session obligatoire (redirect /login) + AppShell
-      page.tsx                    Tableau de bord (provisoire, Module A)
+      page.tsx                    Tableau de bord connecté (Module A, Phase 8)
       cluster/page.tsx            Cartographie connectée : lecture base + éditeur (Phase 5)
       employees/page.tsx          Collaborateurs : liste + filtres + création (Phase 6)
       employees/[id]/page.tsx     Fiche collaborateur + affectations (Phase 6)
       assets/page.tsx             Parc informatique : liste + filtres + création (Phase 6)
       assets/[id]/page.tsx        Fiche équipement + affectations (Phase 6)
-      maintenance/page.tsx        Maintenance (provisoire, Module E)
-      reports/page.tsx            Statistiques (provisoire, Module F)
+      maintenance/page.tsx        Maintenance : liste + filtres + création (Phase 8)
+      maintenance/[id]/page.tsx   Fiche intervention : cycle de vie + édition (Phase 8)
+      reports/page.tsx            Statistiques agrégées depuis la base (Phase 8)
       settings/page.tsx           Administration (provisoire, Module G)
+      import/page.tsx             Import Excel/CSV : analyse + aperçu + rapport (Phase 7)
+    api/
+      import/template/route.ts    Téléchargement du modèle .xlsx (ADMIN/MANAGER)
   proxy.ts                        ex-middleware Next 16 : session + protection
   supabase/migrations/
     20261009120000_init_schema.sql        tables, helpers, triggers, audit
@@ -155,6 +166,16 @@ ce sont des types générés obsolètes, pas des erreurs de code.
       new-asset.tsx               bouton + panneau de création
       asset-assignments.tsx       affectation à un collaborateur / remise en stock
       asset-status-toggle.tsx     activation / désactivation
+    maintenance/
+      ticket-form.tsx             création / édition d'un ticket
+      new-ticket.tsx              bouton + panneau de création
+      ticket-table.tsx            liste des interventions
+      ticket-status-controls.tsx  changement de statut en un clic
+    import/
+      import-workbench.tsx        écran d'import : type, fichier, aperçu, rapport
+    overview/
+      stat-card.tsx               carte d'indicateur (partagée tableau de bord/rapports)
+      breakdown-list.tsx          répartition en barres proportionnelles (partagée)
     ui/
       button.tsx                  Button + buttonVariants (cva)
       field.tsx                   Field, Input, Textarea, Select
@@ -165,17 +186,29 @@ ce sont des types générés obsolètes, pas des erreurs de code.
       empty-state.tsx             EmptyState, Spinner
   lib/
     utils/cn.ts                   fusion de classes
-    constants/nav.ts              NAV_ITEMS + findNavItem (7 modules)
+    constants/nav.ts              NAV_ITEMS + TOOL_ITEMS + findNavItem
+    constants/inventory.ts        statuts et types du parc informatique
+    constants/maintenance.ts      statuts et priorités des tickets
     data/
       spatial.ts                  getPlanLayout() : lecture base -> types/plan.ts
       employees.ts                list/detail collaborateurs, services, options
-      assets.ts                   list/detail du parc, types d'équipement
+      assets.ts                   list/detail du parc, types, options d'équipement
       assignments.ts              hydrateAssignments() : jointures des affectations
+      maintenance.ts              list/detail des tickets + hydratation équipement/collaborateur/position + dernières interventions
+      reports.ts                  getReportsOverview() : statistiques agrégées
     actions/
       common.ts                   ActionResult + ensureEditor() (garde de rôle)
       plan.ts                     server actions d'édition du plan (rôle requis)
       employees.ts                collaborateurs + affectation de position
       assets.ts                   parc informatique + affectation / remise en stock
+      maintenance.ts              tickets : création, édition, changement de statut (rôle requis)
+      import.ts                   analyzeImport + commitImport (import Excel/CSV)
+    import/
+      types.ts                    types du module d'import
+      fields.ts                   schémas de colonnes, alias, normalisation
+      parse.ts                    lecture .xlsx (exceljs) / .csv (parseur dédié)
+      validate.ts                 mapping, validation, aperçu, charges DB
+      template.ts                 génération du modèle .xlsx
     auth/
       session.ts                  getCurrentUser() + type AppUser
       actions.ts                  signIn / signOut (server actions)
@@ -194,10 +227,19 @@ ce sont des types générés obsolètes, pas des erreurs de code.
     employee.ts                   Employee, EmployeeDetail, filtres
     asset.ts                      PcAsset, PcAssetDetail, filtres
     assignment.ts                 AssignmentLink (jonction)
+    maintenance.ts                MaintenanceTicket, MaintenanceFilters
+  tests/
+    helpers.mjs                   aides partagées (env, clients, sessions, users temp)
+    security/rls.test.mjs         matrice RLS (anonyme/VIEWER/MANAGER/ADMIN)
+    security/static.test.mjs      RLS déclarée + absence de clé secrète
+    e2e/routes.test.mjs           redirections anonymes + rendu par rôle
   docs/
     audit-phase0.md               audit des sources
     supabase-setup.md             procédure Supabase
     cartographie-phase3.md        analyse géométrique Phase 3
+    import-phase7.md              module d'import Excel/CSV (Phase 7)
+    maintenance-phase8.md         maintenance et rapports (Phase 8)
+    tests-phase9.md               tests sécurité et bout en bout (Phase 9)
     PASSATION.txt                 ce document
   .env.local                      secrets (gitignoré) — ne jamais commiter
   .env.example                    modèle sans secret
@@ -226,13 +268,13 @@ ce sont des types générés obsolètes, pas des erreurs de code.
   PHASE 0  — Audit                                  Validée
   PHASE 1  — Fondations                             Validée
   PHASE 2  — Système visuel                         Validée
-  PHASE 3  — Analyse et prototype cartographie      Réalisée — en attente de validation
+  PHASE 3  — Analyse et prototype cartographie      Validée
   PHASE 4  — Base de données et authentification    Validée
-  PHASE 5  — Cartographie interactive connectée     Réalisée — en attente de validation
-  PHASE 6  — Collaborateurs et équipements          Réalisée — en attente de validation
-  PHASE 7  — Import Excel et CSV                    À faire
-  PHASE 8  — Maintenance et rapports                À faire
-  PHASE 9  — Tests de bout en bout et sécurité      À faire
+  PHASE 5  — Cartographie interactive connectée     Validée
+  PHASE 6  — Collaborateurs et équipements          Validée
+  PHASE 7  — Import Excel et CSV                    Validée
+  PHASE 8  — Maintenance et rapports                Validée
+  PHASE 9  — Tests de bout en bout et sécurité      Réalisée — en attente de validation
   PHASE 10 — Déploiement cloud                      À faire
 
 Détail complet dans PROJECT_STATUS.md.
@@ -271,9 +313,10 @@ Détail complet dans PROJECT_STATUS.md.
 9. PROBLÈMES CONNUS / ARBITRAGES RESTANTS
 --------------------------------------------------------------------------------
 
-  1. xlsx@0.18.5 : npm install remonte 26 vulnérabilités (dont 2 critiques),
-     probablement liées à cette version obsolète. À remplacer en Phase 7
-     (exceljs, read-excel-file, ou SheetJS via CDN/EE).
+  1. Import Excel : xlsx@0.18.5 (26 vulnérabilités, 2 critiques) RÉSOLU en
+     Phase 7 : remplacé par exceljs@4.4.0 (serveur uniquement). L'audit npm
+     restant provient de l'outillage framework/CLI (next,
+     @modelcontextprotocol/sdk…) — hors périmètre import.
   2. Dossier ~/package.json orphelin hors dépôt : warning Turbopack atténué par
      turbopack.root dans next.config.ts ; suppression manuelle recommandée.
   3. skills/, .claude/skills/, .windsurf/skills/ contiennent la doc Prisma alors
@@ -290,19 +333,27 @@ Détail complet dans PROJECT_STATUS.md.
 
 
 --------------------------------------------------------------------------------
-10. PROCHAINE ÉTAPE (validation PHASE 6, puis PHASE 7)
+10. PROCHAINE ÉTAPE (validation PHASE 9, puis PHASE 10)
 --------------------------------------------------------------------------------
 
-  1. Faire valider la PHASE 6 : /employees (liste, recherche/filtres, création)
-     et /employees/[id] (fiche, édition, activation/désactivation, affectation à
-     une position, historique) ; /assets et /assets/[id] (idem, affectation à un
-     collaborateur, remise en stock). Tous les écrans lisent la base (RLS +
-     can_edit()).
-  2. PHASE 7 — Import Excel et CSV : import des collaborateurs et du parc
-     informatique depuis les fichiers de référence (aperçu, rapport d'erreurs) ;
-     remplacer xlsx@0.18.5 (Problème #1).
-  3. PHASE 8 — Maintenance et rapports : tickets (maintenance_tickets) et
-     statistiques.
+  Phases 0 à 8 validées. La PHASE 9 (tests et sécurité) est réalisée :
+
+    - tests/security/ : matrice RLS (anonyme = 0 lecture + écriture refusée ;
+      VIEWER = lecture seule, auto-promotion refusée ; MANAGER = écriture métier
+      mais administration/audit refusés ; ADMIN = journal + rôles) et vérifications
+      statiques (RLS déclarée partout, clé secrète absente du dépôt et du bundle) ;
+    - tests/e2e/ : redirections anonymes (307 -> /login?redirectTo=…) des 8 routes
+      protégées et rendu HTTP par rôle (VIEWER sans contrôle de création, MANAGER
+      avec édition et workbench d'import) ;
+    - runner natif `node --test`, aucune dépendance ; utilisateurs temporaires
+      supprimés ; géométrie de référence jamais modifiée.
+    Détail complet : docs/tests-phase9.md.
+
+  1. Attendre la validation utilisateur de la PHASE 9.
+  2. PHASE 10 — Déploiement cloud : hébergement, variables d'environnement,
+     en-têtes de sécurité, `npm audit`.
+  3. Reste à connecter : Module G / Administration (encore provisoire) ; export
+     CSV des statistiques ; historique des imports.
 
 Rappel : migrations déjà appliquées jusqu'à 20261009120400_pc_assets_status_check.sql.
 lib/spatial/cluster-layout.ts ne sert qu'à l'amorçage de la cartographie.
