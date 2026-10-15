@@ -25,6 +25,59 @@ const CELL_W = 26;
 const CELL_H = 22;
 const PAD = 14;
 
+type RoomStyle = {
+  fill: string;
+  stroke: string;
+  text: string;
+  dashed?: boolean;
+};
+
+const ROOM_STYLES: Record<string, RoomStyle> = {
+  PANTRY: {
+    fill: "var(--color-ink-800)",
+    stroke: "var(--color-accent)",
+    text: "var(--color-text)",
+  },
+  SERVER: {
+    fill: "var(--color-ink-800)",
+    stroke: "var(--color-warning)",
+    text: "var(--color-text)",
+  },
+  OFFICE: {
+    fill: "var(--color-ink-800)",
+    stroke: "var(--color-line)",
+    text: "var(--color-text-dim)",
+  },
+  STOCK: {
+    fill: "var(--color-ink-900)",
+    stroke: "var(--color-text-faint)",
+    text: "var(--color-text-dim)",
+  },
+  TOILET: {
+    fill: "var(--color-ink-900)",
+    stroke: "var(--color-line)",
+    text: "var(--color-text-faint)",
+  },
+  STAIR: {
+    fill: "var(--color-ink-700)",
+    stroke: "var(--color-accent)",
+    text: "var(--color-accent)",
+  },
+  SPECIAL: {
+    fill: "transparent",
+    stroke: "var(--color-line)",
+    text: "var(--color-text-faint)",
+    dashed: true,
+  },
+};
+
+const DEFAULT_ROOM_STYLE: RoomStyle = {
+  fill: "transparent",
+  stroke: "var(--color-line)",
+  text: "var(--color-text-faint)",
+  dashed: true,
+};
+
 export type ClusterPlanProps = {
   layout: PlanLayout;
   selectedSeatId: string | null;
@@ -111,8 +164,7 @@ export function ClusterPlan({
           const height = annotation.rowSpan * CELL_H;
           const x = xOf(annotation.gridCol);
           const y = yOf(annotation.gridRow);
-          const isEmpty = annotation.label.toLowerCase().includes("vide");
-          const isStair = annotation.label.toLowerCase().includes("escalier");
+          const style = ROOM_STYLES[annotation.kind] ?? DEFAULT_ROOM_STYLE;
 
           if (annotation.kind === "WING") {
             return (
@@ -180,16 +232,17 @@ export function ClusterPlan({
                 width={width - 2}
                 height={height - 2}
                 rx={3}
-                fill={isStair ? "var(--color-ink-700)" : "transparent"}
-                stroke={isStair ? "var(--color-accent)" : "var(--color-line)"}
-                strokeDasharray={isEmpty ? "3 3" : undefined}
+                fill={style.fill}
+                stroke={style.stroke}
+                strokeDasharray={style.dashed ? "3 3" : undefined}
               />
               <text
                 x={x + width / 2}
                 y={y + height / 2 + 4}
                 textAnchor="middle"
-                fontSize={isStair ? 11 : 12}
-                fill={isStair ? "var(--color-accent)" : "var(--color-text-faint)"}
+                fontSize={12}
+                fontWeight={600}
+                fill={style.text}
               >
                 {annotation.label}
               </text>

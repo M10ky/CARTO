@@ -6,7 +6,13 @@ export type PlanSeatRow = {
   columns: string[];
 };
 
-export type PlanSpecialKind = "STAIR" | "PANTRY" | "DIRECTION" | "OPEN";
+export type PlanSpecialKind =
+  | "STAIR"
+  | "PANTRY"
+  | "TOILET"
+  | "STOCK"
+  | "SERVER"
+  | "OFFICE";
 
 export type PlanSpecialArea = {
   id: string;
@@ -128,18 +134,22 @@ export const SEAT_ROWS: PlanSeatRow[] = [
 export const SPECIAL_AREAS: PlanSpecialArea[] = [
   { id: "ESCALIER EST", label: "ESCALIER EST", kind: "STAIR", row: 10, col: "X", rowSpan: 11, colSpan: 1 },
   { id: "PANTRY", label: "Pantry", kind: "PANTRY", row: 39, col: "P", rowSpan: 3, colSpan: 17 },
-  { id: "VOID-P45", label: "Espace vide", kind: "OPEN", row: 45, col: "P", rowSpan: 12, colSpan: 6 },
-  { id: "VOID-W45", label: "Espace vide", kind: "OPEN", row: 45, col: "W", rowSpan: 12, colSpan: 4 },
-  { id: "VOID-AB45", label: "Espace vide", kind: "OPEN", row: 45, col: "AB", rowSpan: 12, colSpan: 4 },
-  { id: "VOID-Z61", label: "Espace vide", kind: "OPEN", row: 61, col: "Z", rowSpan: 11, colSpan: 6 },
-  { id: "VOID-Q64", label: "Espace vide", kind: "OPEN", row: 64, col: "Q", rowSpan: 2, colSpan: 7 },
-  { id: "VOID-Q71", label: "Espace vide", kind: "OPEN", row: 71, col: "Q", rowSpan: 2, colSpan: 3 },
-  { id: "VOID-U71", label: "Espace vide", kind: "OPEN", row: 71, col: "U", rowSpan: 2, colSpan: 3 },
-  { id: "VOID-AB73", label: "Espace vide", kind: "OPEN", row: 73, col: "AB", rowSpan: 10, colSpan: 4 },
-  { id: "VOID-Q74", label: "Espace vide", kind: "OPEN", row: 74, col: "Q", rowSpan: 2, colSpan: 3 },
-  { id: "VOID-U74", label: "Espace vide", kind: "OPEN", row: 74, col: "U", rowSpan: 2, colSpan: 3 },
-  { id: "VOID-R80", label: "Espace vide", kind: "OPEN", row: 80, col: "R", rowSpan: 2, colSpan: 5 },
-  { id: "VOID-X80", label: "Espace vide", kind: "OPEN", row: 80, col: "X", rowSpan: 2, colSpan: 3 },
+  { id: "TOILETTE-1", label: "toilette 1", kind: "TOILET", row: 42, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "TOILETTE-2", label: "toilette 2", kind: "TOILET", row: 42, col: "X", rowSpan: 3, colSpan: 9 },
+  { id: "STOCK-FIN", label: "Stock Fin", kind: "STOCK", row: 45, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "SERVER", label: "Server", kind: "SERVER", row: 45, col: "X", rowSpan: 3, colSpan: 9 },
+  { id: "STOCK-2", label: "Stock 2", kind: "STOCK", row: 48, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "STOCK-1", label: "Stock 1", kind: "STOCK", row: 48, col: "X", rowSpan: 3, colSpan: 9 },
+  { id: "TOILETTE-3", label: "toilette 3", kind: "TOILET", row: 51, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "TOILETTE-4", label: "toilette 4", kind: "TOILET", row: 51, col: "X", rowSpan: 3, colSpan: 9 },
+  { id: "ZOOM", label: "ZOOM", kind: "OFFICE", row: 54, col: "P", rowSpan: 3, colSpan: 6 },
+  { id: "SMART", label: "SMART", kind: "OFFICE", row: 54, col: "V", rowSpan: 3, colSpan: 6 },
+  { id: "SHINE", label: "SHINE", kind: "OFFICE", row: 54, col: "AB", rowSpan: 3, colSpan: 5 },
+  { id: "B4B", label: "B4B", kind: "OFFICE", row: 59, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "DRH", label: "DRH", kind: "OFFICE", row: 62, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "RH", label: "RH", kind: "OFFICE", row: 65, col: "P", rowSpan: 4, colSpan: 8 },
+  { id: "MULTIMEDIA", label: "Multimedia", kind: "OFFICE", row: 59, col: "X", rowSpan: 5, colSpan: 9 },
+  { id: "ZEN", label: "ZEN", kind: "OFFICE", row: 64, col: "X", rowSpan: 5, colSpan: 9 },
 ];
 
 export const PLAN_LABELS: PlanLabel[] = [

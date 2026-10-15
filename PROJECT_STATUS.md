@@ -21,6 +21,7 @@
 | PHASE 8 — Maintenance et rapports | **Validée** |
 | PHASE 9 — Tests de bout en bout et sécurité | **Réalisée — en attente de validation** |
 | CORRECTIFS POST-PHASE 9 — Retrait Collaborateurs, Administration, recherche | **Réalisée — à valider** |
+| CORRECTIF ESPACES SPÉCIAUX — noyau central nommé | **Réalisée — à valider** |
 | PHASE 10 — Déploiement cloud | À faire |
 
 **Étape actuelle :** correctifs **post-Phase 9** réalisés — le module
@@ -287,6 +288,38 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
   vérification statique du pattern RLS sur **toutes** les migrations ; E2E :
   `/employees` retiré, `/recherche` ajouté, `/settings` couvert (restriction
   VIEWER/MANAGER + accès ADMIN).
+
+---
+
+### CORRECTIF ESPACES SPÉCIAUX — noyau central nommé (réalisée, à valider)
+
+- **Remplacement des « Espace vide » génériques et de l'ancien Pantry** par des
+  zones nommées du noyau central. Les 12 annotations `SPECIAL` « Espace vide »
+  sont supprimées ; `ESCALIER EST` est conservé (re-kindé `STAIR`).
+- **Nouvelles zones** (bande centrée colonnes `P→AF`, lignes `39→68`) :
+  Pantry (`PANTRY`, ligne 39, `P`, 3×17) ; toilette 1-4 (`TOILET`, lignes
+  42/51) ; Stock Fin, Stock 1, Stock 2 (`STOCK`, lignes 45/48) ; Server
+  (`SERVER`, ligne 45) ; ZOOM / SMART / SHINE (ligne 54, `OFFICE`) ;
+  B4B / DRH / RH (`OFFICE`, colonnes `P..W`, lignes 59-68) ; Multimedia / ZEN
+  (`OFFICE`, colonnes `X..AF`, lignes 59-68). L'espace restant sous la ligne 68
+  est laissé **vide** (plus aucune annotation).
+- **Kinds étendus** : contrainte `plan_annotations_kind_check` élargie à
+  `PANTRY | TOILET | STOCK | SERVER | OFFICE | STAIR` (en plus de
+  `ZONE | RANGEE | WING | FREE | SPECIAL`) ; type `PlanSpecialKind` aligné.
+- **Rendu** (`components/cartography/cluster-plan.tsx`) : le style est piloté par
+  `annotation.kind` (fin des hacks `label.includes("vide"/"escalier")`) —
+  couleur/bordure/libellé distincts par kind (Pantry accent, Server warning,
+  Stock/toilettes neutres, bureaux `ink-800`, escalier accent).
+- **Règle d'or respectée** : la géométrie reste séparée du rendu — positions
+  dans `SPECIAL_AREAS` (`lib/spatial/cluster-layout.ts`, données pures) **et**
+  en base (`plan_annotations`, source du rendu live).
+- **Migration** `supabase/migrations/20261015120000_special_areas_rework.sql` :
+  suppression des anciens espaces vides + Pantry, extension de contrainte,
+  re-kind `ESCALIER EST` → `STAIR`, insertion des 17 blocs nommés. Le seed
+  `20261009120300_seed_spatial.sql` reste inchangé (une installation neuve
+  applique le seed puis cette migration).
+- **Non-régression** : aucun poste touché (les 671 positions sont hors de la
+  bande `P→AF` / lignes `39→68`). Vérifié : `lint`, `typecheck`, `build`.
 
 ---
 
@@ -747,10 +780,11 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
 ## Prochaines actions
 
-1. **Valider les CORRECTIFS POST-PHASE 9**, puis **appliquer la migration**
-   `20261013120000_remove_employees_add_settings.sql` via Session pooler
-   (`supabase db push --db-url`) — la chaîne de connexion doit être fournie
-   (absente de `.env.local`), avant la PHASE 10.
+1. **Valider les correctifs** (post-Phase 9 + espaces spéciaux). Les migrations
+   `20261013120000_remove_employees_add_settings.sql` et
+   `20261015120000_special_areas_rework.sql` sont **appliquées** via Session
+   pooler (`supabase db push --db-url`) ; pour reproduire, fournir la chaîne de
+   connexion (absente de `.env.local`). Validation avant la PHASE 10.
 2. **PHASE 10 — Déploiement cloud** : hébergement, variables d'environnement,
    en-têtes de sécurité, `npm audit`.
 3. Export CSV des statistiques et historique des imports : non implémentés
