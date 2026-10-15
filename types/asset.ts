@@ -12,6 +12,11 @@ export type PcAsset = {
   notes: string | null;
   isActive: boolean;
   createdAt: string;
+  assignedSeat: {
+    id: string;
+    code: string;
+    zoneName: string | null;
+  } | null;
 };
 
 export type PcAssetDetail = PcAsset & {

@@ -15,7 +15,6 @@ export type PlanZone = {
   wing: WingType;
   kind: string;
   department: string | null;
-  declaredPositions: number | null;
   color: string | null;
   sortOrder: number;
   isActive: boolean;
@@ -56,10 +55,19 @@ export type PlanAnnotation = {
   isActive: boolean;
 };
 
+export type SeatAsset = {
+  seatId: string;
+  id: string;
+  assetTag: string | null;
+  model: string | null;
+  assetType: string | null;
+};
+
 export type PlanLayout = {
   zones: PlanZone[];
   rows: PlanRow[];
   seats: PlanSeat[];
   annotations: PlanAnnotation[];
   statuses: PlanStatus[];
+  seatAssets: SeatAsset[];
 };

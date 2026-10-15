@@ -11,10 +11,6 @@ import {
 } from "../helpers.mjs";
 
 const cfg = getConfig();
-const rlsMigration = readFileSync(
-  resolve(repoRoot, "supabase/migrations/20261009120100_rls_policies.sql"),
-  "utf8",
-);
 
 function walk(dir) {
   const files = [];
@@ -26,16 +22,25 @@ function walk(dir) {
   return files;
 }
 
+function allMigrations() {
+  return walk(resolve(repoRoot, "supabase/migrations"))
+    .filter((file) => file.endsWith(".sql"))
+    .sort()
+    .map((file) => readFileSync(file, "utf8"))
+    .join("\n");
+}
+
 test("toutes les tables protégées ont RLS activée dans les migrations", () => {
+  const migrations = allMigrations();
   for (const table of PROTECTED_TABLES) {
     const pattern = new RegExp(
       `alter table public\\.${table}\\s+enable row level security`,
       "i",
     );
     assert.match(
-      rlsMigration,
+      migrations,
       pattern,
-      `RLS non activée pour ${table} dans 20261009120100_rls_policies.sql`,
+      `RLS non activée pour ${table} dans les migrations`,
     );
   }
 });

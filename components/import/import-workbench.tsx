@@ -39,15 +39,24 @@ const statusConfig: Record<
   duplicate: { label: "Doublon", tone: "warning" },
 };
 
-function displayValue(field: string, value: string): string {
+const SEAT_STATUS_LABELS: Record<string, string> = {
+  OCCUPIED: "Occupée",
+  FREE: "Libre",
+  UNAVAILABLE: "Indisponible",
+};
+
+function displayValue(kind: ImportKind, field: string, value: string): string {
   if (field === "status" && value) {
+    if (kind === "seats") {
+      return SEAT_STATUS_LABELS[value] ?? value;
+    }
     return pcStatusLabel(value);
   }
   return value || "—";
 }
 
 export function ImportWorkbench({
-  initialKind = "employees",
+  initialKind = "assets",
 }: {
   initialKind?: ImportKind;
 }) {
@@ -69,7 +78,7 @@ export function ImportWorkbench({
   }
 
   function handleKindChange(value: string) {
-    setKind(value === "assets" ? "assets" : "employees");
+    setKind(value === "assets" ? "assets" : "seats");
     setFile(null);
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -145,8 +154,8 @@ export function ImportWorkbench({
                 value={kind}
                 onChange={(event) => handleKindChange(event.target.value)}
               >
-                <option value="employees">Collaborateurs</option>
                 <option value="assets">Parc informatique</option>
+                <option value="seats">Positions (plan)</option>
               </Select>
             </Field>
             <Field
@@ -288,6 +297,7 @@ export function ImportWorkbench({
                         {mappedColumns.map((column) => (
                           <TableCell key={column.field}>
                             {displayValue(
+                              kind,
                               column.field,
                               row.values[column.field] ?? "",
                             )}

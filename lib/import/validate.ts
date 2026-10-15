@@ -2,6 +2,7 @@ import {
   IMPORT_FIELDS,
   normalizeAssetType,
   normalizeKey,
+  normalizeSeatStatus,
   normalizeStatus,
 } from "@/lib/import/fields";
 import type { ParsedSheet } from "@/lib/import/parse";
@@ -13,8 +14,6 @@ import type {
   PreviewRow,
   PreviewStatus,
 } from "@/lib/import/types";
-
-const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 function cellAt(cells: string[], index: number): string {
   if (index < 0 || index >= cells.length) {
@@ -49,6 +48,16 @@ function transform(kind: ImportKind, field: string, raw: string): string {
   if (kind === "assets" && field === "assetType") {
     return normalizeAssetType(raw);
   }
+  if (kind === "seats" && field === "status") {
+    return normalizeSeatStatus(raw);
+  }
+  if (kind === "seats" && field === "gridCol") {
+    return raw.trim().toUpperCase();
+  }
+  if (kind === "seats" && field === "gridRow") {
+    const parsed = Number.parseInt(raw, 10);
+    return Number.isNaN(parsed) ? "" : String(parsed);
+  }
   return raw.trim();
 }
 
@@ -67,12 +76,12 @@ function extractValues(
 export function validateValues(kind: ImportKind, values: ImportRow): string[] {
   const issues: string[] = [];
 
-  if (kind === "employees") {
-    if (!values.firstName && !values.lastName) {
-      issues.push("Renseignez au moins un nom ou un prénom.");
+  if (kind === "seats") {
+    if (!values.code?.trim()) {
+      issues.push("Le code de la position est obligatoire.");
     }
-    if (values.email && !EMAIL_PATTERN.test(values.email)) {
-      issues.push("Adresse e-mail invalide.");
+    if (!values.zone?.trim()) {
+      issues.push("Précisez la zone (code ou nom).");
     }
     return issues;
   }
@@ -84,9 +93,9 @@ export function validateValues(kind: ImportKind, values: ImportRow): string[] {
 }
 
 export function keyOf(kind: ImportKind, values: ImportRow): string | null {
-  if (kind === "employees") {
-    const matricule = values.matricule?.trim();
-    return matricule ? matricule.toLowerCase() : null;
+  if (kind === "seats") {
+    const code = values.code?.trim();
+    return code ? code.toLowerCase() : null;
   }
   const tag = values.assetTag?.trim();
   return tag ? tag.toLowerCase() : null;
@@ -159,35 +168,6 @@ function nullable(value: string | undefined): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function compact(
-  data: Record<string, string | null>,
-): Record<string, string> {
-  const patch: Record<string, string> = {};
-  for (const [key, value] of Object.entries(data)) {
-    if (typeof value === "string" && value.trim().length > 0) {
-      patch[key] = value;
-    }
-  }
-  return patch;
-}
-
-export function toEmployeeData(values: ImportRow): Record<string, string | null> {
-  return {
-    matricule: nullable(values.matricule),
-    first_name: nullable(values.firstName),
-    last_name: nullable(values.lastName),
-    service: nullable(values.service),
-    job_title: nullable(values.jobTitle),
-    email: nullable(values.email),
-    phone: nullable(values.phone),
-    location: nullable(values.location),
-  };
-}
-
-export function toEmployeePatch(values: ImportRow): Record<string, string> {
-  return compact(toEmployeeData(values));
-}
-
 export function toAssetData(values: ImportRow): Record<string, string | null> {
   return {
     asset_tag: nullable(values.assetTag),
@@ -202,5 +182,11 @@ export function toAssetData(values: ImportRow): Record<string, string | null> {
 }
 
 export function toAssetPatch(values: ImportRow): Record<string, string> {
-  return compact(toAssetData(values));
+  const patch: Record<string, string> = {};
+  for (const [key, value] of Object.entries(toAssetData(values))) {
+    if (typeof value === "string" && value.trim().length > 0) {
+      patch[key] = value;
+    }
+  }
+  return patch;
 }

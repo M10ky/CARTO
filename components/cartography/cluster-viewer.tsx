@@ -1,34 +1,49 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Move, X } from "lucide-react";
+import { Monitor, Move, X } from "lucide-react";
 
 import { ClusterPlan } from "@/components/cartography/cluster-plan";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/field";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
+import { assignAssetToSeat, releaseAsset } from "@/lib/actions/assets";
+import { type ActionResult } from "@/lib/actions/common";
 import {
   moveSeat,
   renameRow,
   renameZone,
   updateSeat,
-  type PlanActionResult,
 } from "@/lib/actions/plan";
-import type { PlanLayout, PlanSeat, PlanZone } from "@/types/plan";
+import { pcStatusLabel } from "@/lib/constants/inventory";
+import type { AssignableAsset } from "@/lib/data/assets";
+import type {
+  PlanLayout,
+  PlanSeat,
+  PlanZone,
+  SeatAsset,
+} from "@/types/plan";
 
 type Feedback = { tone: "success" | "danger" | "info"; message: string };
 
 export function ClusterViewer({
   layout,
   canEdit,
+  initialSeatId,
+  assignableAssets,
 }: {
   layout: PlanLayout;
   canEdit: boolean;
+  initialSeatId?: string | null;
+  assignableAssets?: AssignableAsset[];
 }) {
   const router = useRouter();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialSeatId ?? null,
+  );
   const [moveMode, setMoveMode] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [pending, startTransition] = useTransition();
@@ -45,7 +60,7 @@ export function ClusterViewer({
       ? (layout.rows.find((r) => r.id === seat.rowId) ?? null)
       : null;
 
-  function run(action: Promise<PlanActionResult>, successMessage: string) {
+  function run(action: Promise<ActionResult>, successMessage: string) {
     startTransition(async () => {
       const result = await action;
       if (result.ok) {
@@ -127,6 +142,28 @@ export function ClusterViewer({
                   {seat.gridRow}
                 </dd>
               </dl>
+
+              {canEdit ? (
+                <AssignToSeatForm
+                  seatId={seat.id}
+                  assets={assignableAssets ?? []}
+                  pending={pending}
+                  onAssign={(pcAssetId) =>
+                    run(
+                      assignAssetToSeat(pcAssetId, seat.id),
+                      "Équipement affecté à cette position.",
+                    )
+                  }
+                />
+              ) : null}
+
+              <SeatAssetsBlock
+                assets={layout.seatAssets.filter((asset) => asset.seatId === seat.id)}
+                canEdit={canEdit}
+                onRelease={(pcAssetId) =>
+                  run(releaseAsset(pcAssetId), "Équipement remis en stock.")
+                }
+              />
 
               {canEdit ? (
                 <SeatEditor
@@ -282,6 +319,117 @@ function SeatEditor({
           </Button>
         </form>
       ) : null}
+    </div>
+  );
+}
+
+function AssignToSeatForm({
+  seatId,
+  assets,
+  pending,
+  onAssign,
+}: {
+  seatId: string;
+  assets: AssignableAsset[];
+  pending: boolean;
+  onAssign: (pcAssetId: string) => void;
+}) {
+  const [assetId, setAssetId] = useState("");
+
+  if (assets.length === 0) {
+    return (
+      <p className="text-xs text-text-dim">
+        Aucun équipement du parc disponible à référencer pour cette position.
+      </p>
+    );
+  }
+
+  return (
+    <form
+      className="flex items-end gap-2 border-b border-line pb-4"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (assetId) {
+          onAssign(assetId);
+          setAssetId("");
+        }
+      }}
+    >
+      <Field label="Référencer le PC présent" htmlFor={`assign-to-${seatId}`} className="flex-1">
+        <Select
+          id={`assign-to-${seatId}`}
+          value={assetId}
+          onChange={(event) => setAssetId(event.target.value)}
+        >
+          <option value="">Choisir un équipement…</option>
+          {assets.map((asset) => (
+            <option key={asset.id} value={asset.id}>
+              {asset.assetTag ?? "—"}
+              {asset.model ? ` — ${asset.model}` : ""}
+              {" — "}
+              {pcStatusLabel(asset.status)}
+            </option>
+          ))}
+        </Select>
+      </Field>
+      <Button type="submit" variant="primary" size="sm" disabled={pending || !assetId}>
+        Affecter
+      </Button>
+    </form>
+  );
+}
+
+function SeatAssetsBlock({
+  assets,
+  canEdit = false,
+  onRelease,
+}: {
+  assets: SeatAsset[];
+  canEdit?: boolean;
+  onRelease?: (pcAssetId: string) => void;
+}) {
+  if (assets.length === 0) {
+    return (
+      <p className="text-xs text-text-dim">
+        Aucun équipement affecté à cette position.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-faint">
+        Équipements sur cette position
+      </p>
+      <ul className="flex flex-col gap-1.5">
+        {assets.map((asset) => (
+          <li
+            key={asset.id}
+            className="flex items-center gap-1.5 rounded border border-line bg-ink-900/40 px-2.5 py-1.5"
+          >
+            <Link
+              href={`/assets/${asset.id}`}
+              className="flex min-w-0 flex-1 items-center gap-2 text-xs text-text-dim transition-colors hover:text-text"
+            >
+              <Monitor aria-hidden className="size-3.5 shrink-0 text-text-faint" />
+              <span className="font-mono">{asset.assetTag ?? "—"}</span>
+              {asset.model ? (
+                <span className="truncate text-text-faint">{asset.model}</span>
+              ) : null}
+            </Link>
+            {canEdit && onRelease ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={`Libérer ${asset.assetTag ?? asset.id}`}
+                onClick={() => onRelease(asset.id)}
+              >
+                Libérer
+              </Button>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

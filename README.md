@@ -1,8 +1,8 @@
 # Cartographie du Cluster CNTO
 
 Application web interne pour la cartographie physique du Cluster CNTO, la gestion des
-positions de travail, des collaborateurs, du parc informatique et des opérations de
-maintenance.
+positions de travail, du parc informatique (affectation équipement ↔ position) et des
+opérations de maintenance.
 
 ## Stack
 

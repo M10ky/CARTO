@@ -8,98 +8,15 @@ export function normalizeKey(value: string): string {
     .replace(/[^a-z0-9]+/g, "");
 }
 
-export const IMPORT_KINDS: ImportKind[] = ["employees", "assets"];
+export const IMPORT_KINDS: ImportKind[] = ["assets", "seats"];
 
 export function isImportKind(value: unknown): value is ImportKind {
-  return value === "employees" || value === "assets";
+  return value === "assets" || value === "seats";
 }
 
 export function importKindLabel(kind: ImportKind): string {
-  return kind === "employees" ? "Collaborateurs" : "Parc informatique";
+  return kind === "assets" ? "Parc informatique" : "Positions (plan)";
 }
-
-const EMPLOYEE_FIELDS: ImportFieldSpec[] = [
-  {
-    field: "matricule",
-    label: "Matricule",
-    aliases: [
-      "matricule",
-      "matriculeid",
-      "id",
-      "identifiant",
-      "numeromatricule",
-      "codeemploye",
-      "code",
-    ],
-  },
-  {
-    field: "firstName",
-    label: "Prénom",
-    aliases: ["prenom", "prenoms", "firstname", "givenname"],
-  },
-  {
-    field: "lastName",
-    label: "Nom",
-    aliases: ["nom", "nomdefamille", "lastname", "surname", "name"],
-  },
-  {
-    field: "service",
-    label: "Service",
-    aliases: [
-      "service",
-      "services",
-      "departement",
-      "direction",
-      "pole",
-      "entite",
-      "equipe",
-    ],
-  },
-  {
-    field: "jobTitle",
-    label: "Fonction",
-    aliases: [
-      "fonction",
-      "poste",
-      "metier",
-      "intitule",
-      "intituleposte",
-      "jobtitle",
-    ],
-  },
-  {
-    field: "email",
-    label: "E-mail",
-    aliases: [
-      "email",
-      "mail",
-      "adressemail",
-      "courriel",
-      "adresseelectronique",
-      "emailprofessionnel",
-    ],
-    type: "email",
-  },
-  {
-    field: "phone",
-    label: "Téléphone",
-    aliases: ["telephone", "tel", "phone", "mobile", "numerotelephone"],
-  },
-  {
-    field: "location",
-    label: "Localisation",
-    aliases: [
-      "localisation",
-      "emplacement",
-      "site",
-      "bureau",
-      "aile",
-      "zone",
-      "batiment",
-      "etage",
-    ],
-  },
-];
 
 const ASSET_FIELDS: ImportFieldSpec[] = [
   {
@@ -187,22 +104,99 @@ const ASSET_FIELDS: ImportFieldSpec[] = [
   },
 ];
 
+const SEAT_FIELDS: ImportFieldSpec[] = [
+  {
+    field: "code",
+    label: "Code de la position",
+    aliases: [
+      "code",
+      "codeposition",
+      "positioncode",
+      "refposition",
+      "identifiantposition",
+      "referenceposition",
+      "position",
+      "poste",
+    ],
+  },
+  {
+    field: "label",
+    label: "Indice",
+    aliases: [
+      "indice",
+      "indiceposition",
+      "libelle",
+      "libelleposition",
+      "label",
+      "etiquettedeposte",
+      "prefixe",
+      "numeroposte",
+    ],
+  },
+  {
+    field: "zone",
+    label: "Zone",
+    aliases: [
+      "zone",
+      "codezone",
+      "zoneparente",
+      "secteur",
+      "salle",
+      "emplacement",
+      "site",
+    ],
+  },
+  {
+    field: "row",
+    label: "Rangée",
+    aliases: ["rangee", "range", "rang", "ligne", "file", "rangdenrangee", "row"],
+  },
+  {
+    field: "status",
+    label: "Statut",
+    aliases: [
+      "statut",
+      "status",
+      "etat",
+      "situation",
+      "etatdelaposition",
+      "occupation",
+      "disponibilite",
+    ],
+  },
+  {
+    field: "gridRow",
+    label: "Ligne Excel",
+    aliases: [
+      "ligneexcel",
+      "numeroligne",
+      "noligne",
+      "excelrow",
+      "gridrow",
+      "rowindex",
+      "lignefeuille",
+    ],
+  },
+  {
+    field: "gridCol",
+    label: "Colonne Excel",
+    aliases: [
+      "colonneexcel",
+      "numerocolonne",
+      "excelcol",
+      "gridcol",
+      "colindex",
+      "colonnefeuille",
+    ],
+  },
+];
+
 export const IMPORT_FIELDS: Record<ImportKind, ImportFieldSpec[]> = {
-  employees: EMPLOYEE_FIELDS,
   assets: ASSET_FIELDS,
+  seats: SEAT_FIELDS,
 };
 
 export const TEMPLATE_HEADERS: Record<ImportKind, string[]> = {
-  employees: [
-    "Matricule",
-    "Prénom",
-    "Nom",
-    "Service",
-    "Fonction",
-    "E-mail",
-    "Téléphone",
-    "Localisation",
-  ],
   assets: [
     "N° d'inventaire",
     "N° de série",
@@ -212,6 +206,15 @@ export const TEMPLATE_HEADERS: Record<ImportKind, string[]> = {
     "Système d'exploitation",
     "Statut",
     "Notes",
+  ],
+  seats: [
+    "Code de la position",
+    "Indice",
+    "Zone",
+    "Rangée",
+    "Statut",
+    "Ligne Excel",
+    "Colonne Excel",
   ],
 };
 
@@ -260,6 +263,50 @@ export function normalizeStatus(raw: string): string {
     }
   }
   return "";
+}
+
+const SEAT_STATUS_ALIASES: [string[], string][] = [
+  [
+    [
+      "occupe",
+      "occuper",
+      "occupee",
+      "occupie",
+      "enutilisation",
+      "utilise",
+      "assigne",
+      "affecte",
+      "occupied",
+    ],
+    "OCCUPIED",
+  ],
+  [["libre", "disponible", "vide", "nonoccupe", "free", "available"], "FREE"],
+  [
+    [
+      "indisponible",
+      "horsservice",
+      "enpanne",
+      "reserver",
+      "enreparation",
+      "unavailable",
+      "reserved",
+    ],
+    "UNAVAILABLE",
+  ],
+];
+
+export function normalizeSeatStatus(raw: string): string {
+  const trimmed = raw.trim();
+  const key = normalizeKey(trimmed);
+  if (!key) {
+    return "";
+  }
+  for (const [aliases, code] of SEAT_STATUS_ALIASES) {
+    if (aliases.includes(key)) {
+      return code;
+    }
+  }
+  return trimmed.toUpperCase();
 }
 
 const TYPE_ALIASES: [string[], string][] = [

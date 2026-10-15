@@ -53,19 +53,25 @@ export function Header({
         </p>
       </div>
 
-      <div className="relative ml-auto hidden w-full max-w-xs md:block">
+      <form
+        action="/recherche"
+        method="get"
+        role="search"
+        className="relative ml-auto hidden w-full max-w-xs md:block"
+      >
         <Search
           aria-hidden
           className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-text-faint"
         />
         <input
           type="search"
-          disabled
-          aria-label="Recherche globale (indisponible avant la Phase 5)"
-          placeholder="Recherche globale — Phase 5"
-          className="h-9 w-full rounded border border-line bg-ink-900 pl-9 pr-3 text-sm text-text placeholder:text-text-faint disabled:cursor-not-allowed disabled:opacity-70"
+          name="q"
+          aria-label="Recherche globale"
+          placeholder="Rechercher une position, un équipement…"
+          autoComplete="off"
+          className="h-9 w-full rounded border border-line bg-ink-900 pl-9 pr-3 text-sm text-text placeholder:text-text-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
         />
-      </div>
+      </form>
 
       <div className="flex items-center gap-2 border-l border-line pl-3">
         <span

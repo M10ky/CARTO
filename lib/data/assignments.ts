@@ -5,7 +5,6 @@ import type { AssignmentLink } from "@/types/assignment";
 type AssignmentRecord = {
   id: string;
   seat_id: string | null;
-  employee_id: string | null;
   pc_asset_id: string | null;
   started_at: string;
   ended_at: string | null;
@@ -20,7 +19,6 @@ type SeatRef = {
   zone_id: string;
 };
 
-type EmployeeRef = { id: string; full_name: string };
 type AssetRef = { id: string; asset_tag: string | null };
 type ZoneRef = { id: string; name: string };
 
@@ -33,19 +31,12 @@ export async function hydrateAssignments(
   }
 
   const seatIds = unique(rows.map((row) => row.seat_id));
-  const employeeIds = unique(rows.map((row) => row.employee_id));
   const assetIds = unique(rows.map((row) => row.pc_asset_id));
 
-  const [seatResult, employeeResult, assetResult] = await Promise.all([
+  const [seatResult, assetResult] = await Promise.all([
     seatIds.length
       ? supabase.from("seats").select("id, code, label, zone_id").in("id", seatIds)
       : Promise.resolve({ data: [] as SeatRef[], error: null }),
-    employeeIds.length
-      ? supabase
-          .from("employees")
-          .select("id, full_name")
-          .in("id", employeeIds)
-      : Promise.resolve({ data: [] as EmployeeRef[], error: null }),
     assetIds.length
       ? supabase
           .from("pc_assets")
@@ -54,7 +45,7 @@ export async function hydrateAssignments(
       : Promise.resolve({ data: [] as AssetRef[], error: null }),
   ]);
 
-  const error = seatResult.error ?? employeeResult.error ?? assetResult.error;
+  const error = seatResult.error ?? assetResult.error;
   if (error) {
     throw new Error(`Lecture des affectations impossible : ${error.message}`);
   }
@@ -72,9 +63,6 @@ export async function hydrateAssignments(
   const zoneNameById = new Map(
     ((zoneResult.data ?? []) as ZoneRef[]).map((zone) => [zone.id, zone.name]),
   );
-  const employeeNameById = new Map(
-    ((employeeResult.data ?? []) as EmployeeRef[]).map((e) => [e.id, e.full_name]),
-  );
   const assetTagById = new Map(
     ((assetResult.data ?? []) as AssetRef[]).map((a) => [a.id, a.asset_tag]),
   );
@@ -90,10 +78,6 @@ export async function hydrateAssignments(
       pcAssetId: row.pc_asset_id,
       pcAssetTag: row.pc_asset_id
         ? assetTagById.get(row.pc_asset_id) ?? null
-        : null,
-      employeeId: row.employee_id,
-      employeeName: row.employee_id
-        ? employeeNameById.get(row.employee_id) ?? null
         : null,
       startedAt: row.started_at,
       endedAt: row.ended_at,

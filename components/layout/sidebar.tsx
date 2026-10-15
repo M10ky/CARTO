@@ -122,9 +122,7 @@ export function Sidebar({
         <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-faint">
           État
         </p>
-        <p className="mt-1 text-xs text-text-dim">
-          Phase 8 — maintenance et rapports
-        </p>
+        <p className="mt-1 text-xs text-text-dim">Système opérationnel</p>
       </div>
     </div>
   );

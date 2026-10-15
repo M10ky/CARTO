@@ -18,7 +18,6 @@ export type MaintenanceInput = {
   technician: string;
   resolution: string;
   pcAssetId: string;
-  employeeId: string;
   seatId: string;
 };
 
@@ -55,7 +54,6 @@ function payload(input: MaintenanceInput) {
     technician: nullable(input.technician),
     resolution: nullable(input.resolution),
     pc_asset_id: nullable(input.pcAssetId),
-    employee_id: nullable(input.employeeId),
     seat_id: nullable(input.seatId),
   };
 }

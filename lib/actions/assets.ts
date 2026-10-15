@@ -40,7 +40,8 @@ function revalidateAssets(id?: string) {
   if (id) {
     revalidatePath(`/assets/${id}`);
   }
-  revalidatePath("/employees");
+  revalidatePath("/cluster");
+  revalidatePath("/reports");
   revalidatePath("/");
 }
 
@@ -133,32 +134,53 @@ export async function setPcAssetActive(
   return { ok: true };
 }
 
-export async function assignAsset(
+export async function assignAssetToSeat(
   pcAssetId: string,
-  employeeId: string,
+  seatId: string,
 ): Promise<ActionResult> {
   if (!(await ensureEditor())) {
     return fail("Action réservée aux administrateurs et gestionnaires.");
   }
-  if (!pcAssetId || !employeeId) {
-    return fail("Équipement et collaborateur sont requis.");
+  if (!pcAssetId || !seatId) {
+    return fail("Équipement et position sont requis.");
   }
 
   const supabase = await createClient();
   const now = new Date().toISOString();
 
-  const { error: endError } = await supabase
+  const { data: seat, error: seatReadError } = await supabase
+    .from("seats")
+    .select("id, code")
+    .eq("id", seatId)
+    .maybeSingle();
+  if (seatReadError) {
+    return fail(seatReadError.message);
+  }
+  if (!seat) {
+    return fail("Position introuvable.");
+  }
+
+  const { error: endPreviousError } = await supabase
     .from("assignments")
     .update({ is_active: false, ended_at: now })
     .eq("is_active", true)
     .eq("pc_asset_id", pcAssetId);
-  if (endError) {
-    return fail(endError.message);
+  if (endPreviousError) {
+    return fail(endPreviousError.message);
+  }
+
+  const { error: endSeatError } = await supabase
+    .from("assignments")
+    .update({ is_active: false, ended_at: now })
+    .eq("is_active", true)
+    .eq("seat_id", seatId);
+  if (endSeatError) {
+    return fail(endSeatError.message);
   }
 
   const { error } = await supabase.from("assignments").insert({
     pc_asset_id: pcAssetId,
-    employee_id: employeeId,
+    seat_id: seatId,
     is_active: true,
     started_at: now,
   });
@@ -174,8 +196,15 @@ export async function assignAsset(
     return fail(statusError.message);
   }
 
+  const { error: seatStatusError } = await supabase
+    .from("seats")
+    .update({ status: "OCCUPIED" })
+    .eq("id", seatId);
+  if (seatStatusError) {
+    return fail(seatStatusError.message);
+  }
+
   revalidateAssets(pcAssetId);
-  revalidatePath(`/employees/${employeeId}`);
   return { ok: true };
 }
 
@@ -188,6 +217,24 @@ export async function releaseAsset(pcAssetId: string): Promise<ActionResult> {
   }
 
   const supabase = await createClient();
+
+  const { data: activeRows, error: activeError } = await supabase
+    .from("assignments")
+    .select("seat_id")
+    .eq("is_active", true)
+    .eq("pc_asset_id", pcAssetId)
+    .not("seat_id", "is", null);
+  if (activeError) {
+    return fail(activeError.message);
+  }
+  const seatIds = [
+    ...new Set(
+      ((activeRows ?? []) as { seat_id: string }[]).map(
+        (row) => row.seat_id,
+      ),
+    ),
+  ];
+
   const now = new Date().toISOString();
 
   const { error: endError } = await supabase
@@ -205,6 +252,27 @@ export async function releaseAsset(pcAssetId: string): Promise<ActionResult> {
     .eq("id", pcAssetId);
   if (error) {
     return fail(error.message);
+  }
+
+  for (const seatId of seatIds) {
+    const { count, error: countError } = await supabase
+      .from("assignments")
+      .select("id", { count: "exact", head: true })
+      .eq("is_active", true)
+      .eq("seat_id", seatId);
+    if (countError) {
+      return fail(countError.message);
+    }
+    if (count === 0) {
+      const { error: resetError } = await supabase
+        .from("seats")
+        .update({ status: "FREE" })
+        .eq("id", seatId)
+        .eq("status", "OCCUPIED");
+      if (resetError) {
+        return fail(resetError.message);
+      }
+    }
   }
 
   revalidateAssets(pcAssetId);

@@ -16,11 +16,11 @@ export const PROTECTED_TABLES = [
   "zone_rows",
   "seats",
   "plan_annotations",
-  "employees",
   "pc_assets",
   "assignments",
   "maintenance_tickets",
   "audit_log",
+  "app_settings",
 ];
 
 export function loadEnv() {

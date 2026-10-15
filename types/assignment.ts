@@ -6,8 +6,6 @@ export type AssignmentLink = {
   zoneName: string | null;
   pcAssetId: string | null;
   pcAssetTag: string | null;
-  employeeId: string | null;
-  employeeName: string | null;
   startedAt: string;
   endedAt: string | null;
   isActive: boolean;

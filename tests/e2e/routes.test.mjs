@@ -27,12 +27,12 @@ const baseUrl = providedBase ?? `http://localhost:${port}`;
 const PROTECTED_ROUTES = [
   "/",
   "/cluster",
-  "/employees",
   "/assets",
   "/maintenance",
   "/reports",
   "/settings",
   "/import",
+  "/recherche",
 ];
 
 let server = null;
@@ -115,6 +115,10 @@ test("VIEWER : pages en lecture, contrôle de création masqué", skip, async ()
   const importPage = await fetchText("/import", cookie);
   assert.equal(importPage.status, 200);
   assert.ok(importPage.body.includes("Accès restreint"));
+
+  const settings = await fetchText("/settings", cookie);
+  assert.equal(settings.status, 200);
+  assert.ok(settings.body.includes("Accès restreint"));
 });
 
 test("MANAGER : contrôles d'édition présents", skip, async () => {
@@ -132,4 +136,26 @@ test("MANAGER : contrôles d'édition présents", skip, async () => {
     importPage.body.includes("Fichier source"),
     "le workbench d'import doit être accessible à un MANAGER",
   );
+
+  const settings = await fetchText("/settings", cookie);
+  assert.equal(settings.status, 200);
+  assert.ok(
+    settings.body.includes("Accès restreint"),
+    "la page d'administration doit rester interdite à un MANAGER",
+  );
+});
+
+test("ADMIN : administration et recherche fonctionnelles", skip, async () => {
+  const adminUser = await createTempUser(admin, { role: "ADMIN", tag: "phase9-e2e-admin" });
+  createdUsers.push(adminUser.id);
+  const cookie = await getCookieHeader(cfg, adminUser.email, adminUser.password);
+
+  const settings = await fetchText("/settings", cookie);
+  assert.equal(settings.status, 200);
+  assert.ok(settings.body.includes("Utilisateurs et rôles"));
+  assert.ok(settings.body.includes("Journal d'audit"));
+
+  const search = await fetchText("/recherche?q=cluster", cookie);
+  assert.equal(search.status, 200);
+  assert.ok(search.body.includes("Résultats"));
 });

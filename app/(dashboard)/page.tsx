@@ -24,6 +24,7 @@ export default async function DashboardPage() {
   const occupied = countOf(overview.seats.byStatus, "OCCUPIED");
   const free = countOf(overview.seats.byStatus, "FREE");
   const unavailable = countOf(overview.seats.byStatus, "UNAVAILABLE");
+  const inService = countOf(overview.assets.byStatus, "IN_USE");
   const inMaintenance = countOf(overview.assets.byStatus, "MAINTENANCE");
   const occupancy =
     overview.seats.total > 0
@@ -52,14 +53,14 @@ export default async function DashboardPage() {
           />
           <StatCard label="Positions libres" value={free} hint={`${unavailable} indisponible(s)`} />
           <StatCard
-            label="Collaborateurs"
-            value={overview.employees.total}
-            hint={`${overview.employees.active} actif(s)`}
-          />
-          <StatCard
             label="Équipements"
             value={overview.assets.total}
             hint={`${overview.assets.active} actif(s)`}
+          />
+          <StatCard
+            label="Équipements en service"
+            value={inService}
+            hint="affectés à une position"
           />
           <StatCard
             label="Équipements en maintenance"

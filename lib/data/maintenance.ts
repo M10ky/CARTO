@@ -13,7 +13,6 @@ type TicketRecord = {
   technician: string | null;
   resolution: string | null;
   pc_asset_id: string | null;
-  employee_id: string | null;
   seat_id: string | null;
   opened_at: string;
   closed_at: string | null;
@@ -22,11 +21,10 @@ type TicketRecord = {
 };
 
 type AssetRef = { id: string; asset_tag: string | null };
-type EmployeeRef = { id: string; full_name: string };
 type SeatRef = { id: string; code: string };
 
 const SELECT_COLUMNS =
-  "id, reference, title, description, priority, status, technician, resolution, pc_asset_id, employee_id, seat_id, opened_at, closed_at, created_at, updated_at";
+  "id, reference, title, description, priority, status, technician, resolution, pc_asset_id, seat_id, opened_at, closed_at, created_at, updated_at";
 
 function sanitizeSearch(value: string): string {
   return value.replace(/[,()*%\\]/g, " ").trim();
@@ -45,22 +43,18 @@ async function hydrateTickets(
   }
 
   const assetIds = unique(rows.map((row) => row.pc_asset_id));
-  const employeeIds = unique(rows.map((row) => row.employee_id));
   const seatIds = unique(rows.map((row) => row.seat_id));
 
-  const [assetResult, employeeResult, seatResult] = await Promise.all([
+  const [assetResult, seatResult] = await Promise.all([
     assetIds.length
       ? supabase.from("pc_assets").select("id, asset_tag").in("id", assetIds)
       : Promise.resolve({ data: [] as AssetRef[], error: null }),
-    employeeIds.length
-      ? supabase.from("employees").select("id, full_name").in("id", employeeIds)
-      : Promise.resolve({ data: [] as EmployeeRef[], error: null }),
     seatIds.length
       ? supabase.from("seats").select("id, code").in("id", seatIds)
       : Promise.resolve({ data: [] as SeatRef[], error: null }),
   ]);
 
-  const error = assetResult.error ?? employeeResult.error ?? seatResult.error;
+  const error = assetResult.error ?? seatResult.error;
   if (error) {
     throw new Error(`Lecture des tickets impossible : ${error.message}`);
   }
@@ -69,12 +63,6 @@ async function hydrateTickets(
     ((assetResult.data ?? []) as AssetRef[]).map((asset) => [
       asset.id,
       asset.asset_tag,
-    ]),
-  );
-  const employeeNameById = new Map(
-    ((employeeResult.data ?? []) as EmployeeRef[]).map((employee) => [
-      employee.id,
-      employee.full_name,
     ]),
   );
   const seatCodeById = new Map(
@@ -93,10 +81,6 @@ async function hydrateTickets(
     pcAssetId: row.pc_asset_id,
     pcAssetTag: row.pc_asset_id
       ? assetTagById.get(row.pc_asset_id) ?? null
-      : null,
-    employeeId: row.employee_id,
-    employeeName: row.employee_id
-      ? employeeNameById.get(row.employee_id) ?? null
       : null,
     seatId: row.seat_id,
     seatCode: row.seat_id ? seatCodeById.get(row.seat_id) ?? null : null,
@@ -128,8 +112,8 @@ export async function listMaintenanceTickets(
   if (filters.assetId) {
     query = query.eq("pc_asset_id", filters.assetId);
   }
-  if (filters.employeeId) {
-    query = query.eq("employee_id", filters.employeeId);
+  if (filters.seatId) {
+    query = query.eq("seat_id", filters.seatId);
   }
 
   const { data, error } = await query

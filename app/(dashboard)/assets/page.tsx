@@ -52,7 +52,7 @@ export default async function AssetsPage({
     <>
       <PageHeader
         title="Parc informatique"
-        description="Inventaire des ordinateurs et de leurs affectations aux collaborateurs."
+        description="Inventaire des équipements et de leurs affectations aux positions du plan."
         badge={<Badge tone="accent">{assets.length} résultat(s)</Badge>}
         actions={
           canEdit ? (

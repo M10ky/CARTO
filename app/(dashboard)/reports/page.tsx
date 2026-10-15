@@ -9,15 +9,23 @@ import { getReportsOverview } from "@/lib/data/reports";
 
 export const metadata: Metadata = { title: "Statistiques" };
 
+function countOf(
+  items: { code: string; count: number }[],
+  code: string,
+): number {
+  return items.find((item) => item.code === code)?.count ?? 0;
+}
+
 export default async function ReportsPage() {
   const overview = await getReportsOverview();
+  const inUse = countOf(overview.assets.byStatus, "IN_USE");
 
   return (
     <>
       <PageHeader
         title="Statistiques et rapports"
         description="Indicateurs agrégés calculés à partir des données réelles de la base."
-        badge={<Badge tone="accent">Phase 8</Badge>}
+        badge={<Badge tone="accent">{overview.assets.total} équipement(s)</Badge>}
       />
 
       <div className="flex flex-col gap-4">
@@ -29,14 +37,14 @@ export default async function ReportsPage() {
           />
           <StatCard label="Positions" value={overview.seats.total} />
           <StatCard
-            label="Collaborateurs"
-            value={overview.employees.total}
-            hint={`${overview.employees.active} actif(s)`}
-          />
-          <StatCard
             label="Équipements"
             value={overview.assets.total}
             hint={`${overview.assets.active} actif(s)`}
+          />
+          <StatCard
+            label="Équipements en service"
+            value={inUse}
+            hint="affectés à une position"
           />
           <StatCard
             label="Tickets de maintenance"

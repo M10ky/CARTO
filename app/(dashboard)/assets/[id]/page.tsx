@@ -13,7 +13,7 @@ import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { getCurrentUser } from "@/lib/auth/session";
 import { pcStatusLabel, pcStatusTone } from "@/lib/constants/inventory";
 import { getPcAssetDetail, listAssetTypes } from "@/lib/data/assets";
-import { listEmployeeOptions } from "@/lib/data/employees";
+import { listSeatOptions } from "@/lib/data/seats";
 
 export const metadata: Metadata = { title: "Fiche équipement" };
 
@@ -33,9 +33,9 @@ export default async function AssetDetailPage({
   }
 
   const canEdit = user?.role === "ADMIN" || user?.role === "MANAGER";
-  const [assetTypes, employees] = canEdit
-    ? await Promise.all([listAssetTypes(), listEmployeeOptions()])
-    : [[], []];
+  const [assetTypes, seats] = canEdit
+    ? await Promise.all([listAssetTypes(), listSeatOptions()])
+    : [[], [] as Awaited<ReturnType<typeof listSeatOptions>>];
 
   return (
     <>
@@ -98,12 +98,12 @@ export default async function AssetDetailPage({
       <Panel className="mt-4">
         <PanelHeader
           title="Affectations"
-          description="Un équipement n'est affecté qu'à un collaborateur à la fois."
+          description="Un équipement n'est affecté qu'à une position à la fois."
         />
         <PanelBody>
           <AssetAssignments
             pcAssetId={asset.id}
-            employees={employees}
+            seats={seats}
             assignments={asset.assignments}
             canEdit={canEdit}
           />

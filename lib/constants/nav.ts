@@ -5,7 +5,6 @@ import {
   Map,
   Monitor,
   Settings,
-  Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -19,7 +18,7 @@ export type NavLink = {
 
 export type NavItem = NavLink & {
   /** Module fonctionnel du cahier des charges. */
-  module: "A" | "B" | "C" | "D" | "E" | "F" | "G";
+  module: "A" | "B" | "C" | "D" | "E" | "F";
 };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -38,39 +37,32 @@ export const NAV_ITEMS: NavItem[] = [
     module: "B",
   },
   {
-    href: "/employees",
-    label: "Collaborateurs",
-    description: "Fiches et affectations",
-    icon: Users,
-    module: "C",
-  },
-  {
     href: "/assets",
     label: "Parc informatique",
     description: "Inventaire et équipements",
     icon: Monitor,
-    module: "D",
+    module: "C",
   },
   {
     href: "/maintenance",
     label: "Maintenance",
     description: "Interventions et suivi",
     icon: Wrench,
-    module: "E",
+    module: "D",
   },
   {
     href: "/reports",
     label: "Statistiques",
     description: "Rapports et exports",
     icon: ChartColumn,
-    module: "F",
+    module: "E",
   },
   {
     href: "/settings",
     label: "Administration",
     description: "Utilisateurs, rôles, paramètres",
     icon: Settings,
-    module: "G",
+    module: "F",
   },
 ];
 

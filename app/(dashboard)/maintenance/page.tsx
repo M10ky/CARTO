@@ -13,7 +13,7 @@ import {
   MAINTENANCE_STATUSES,
 } from "@/lib/constants/maintenance";
 import { listAssetOptions } from "@/lib/data/assets";
-import { listEmployeeOptions, listSeatOptions } from "@/lib/data/employees";
+import { listSeatOptions } from "@/lib/data/seats";
 import { listMaintenanceTickets } from "@/lib/data/maintenance";
 
 export const metadata: Metadata = { title: "Maintenance" };
@@ -40,11 +40,7 @@ export default async function MaintenancePage({
   });
 
   const options = canEdit
-    ? await Promise.all([
-        listAssetOptions(),
-        listEmployeeOptions(),
-        listSeatOptions(),
-      ])
+    ? await Promise.all([listAssetOptions(), listSeatOptions()])
     : null;
 
   return (
@@ -57,11 +53,7 @@ export default async function MaintenancePage({
 
       <div className="flex flex-col gap-4">
         {options ? (
-          <NewTicket
-            assets={options[0]}
-            employees={options[1]}
-            seats={options[2]}
-          />
+          <NewTicket assets={options[0]} seats={options[1]} />
         ) : null}
 
         <FilterBar resetHref="/maintenance">

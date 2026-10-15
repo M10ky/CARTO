@@ -8,7 +8,7 @@ export async function buildImportTemplate(
 ): Promise<ArrayBuffer> {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet(
-    kind === "employees" ? "Collaborateurs" : "Parc informatique",
+    kind === "assets" ? "Parc informatique" : "Positions",
   );
 
   const headers = TEMPLATE_HEADERS[kind];

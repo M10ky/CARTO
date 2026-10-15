@@ -18,8 +18,6 @@ export type MaintenanceTicket = {
   resolution: string | null;
   pcAssetId: string | null;
   pcAssetTag: string | null;
-  employeeId: string | null;
-  employeeName: string | null;
   seatId: string | null;
   seatCode: string | null;
   openedAt: string;
@@ -33,5 +31,5 @@ export type MaintenanceFilters = {
   status?: string;
   priority?: string;
   assetId?: string;
-  employeeId?: string;
+  seatId?: string;
 };

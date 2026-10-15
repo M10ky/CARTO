@@ -6,6 +6,7 @@ import type {
   PlanSeat,
   PlanStatus,
   PlanZone,
+  SeatAsset,
   WingType,
 } from "@/types/plan";
 
@@ -16,7 +17,6 @@ type ZoneRecord = {
   wing: WingType;
   kind: string;
   department: string | null;
-  declared_positions: number | null;
   color: string | null;
   sort_order: number;
   is_active: boolean;
@@ -65,10 +65,71 @@ type StatusRecord = {
   sort_order: number;
 };
 
+async function loadSeatAssets(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<SeatAsset[]> {
+  const { data: assignments, error: assignmentError } = await supabase
+    .from("assignments")
+    .select("seat_id, pc_asset_id")
+    .eq("is_active", true)
+    .not("pc_asset_id", "is", null)
+    .not("seat_id", "is", null);
+
+  if (assignmentError) {
+    throw new Error(
+      `Lecture des affectations impossible : ${assignmentError.message}`,
+    );
+  }
+
+  const rows = (assignments ?? []) as {
+    seat_id: string;
+    pc_asset_id: string;
+  }[];
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const assetIds = [...new Set(rows.map((row) => row.pc_asset_id))];
+  const { data: assets, error: assetError } = await supabase
+    .from("pc_assets")
+    .select("id, asset_tag, model, asset_type")
+    .in("id", assetIds)
+    .eq("is_active", true);
+
+  if (assetError) {
+    throw new Error(`Lecture des équipements impossible : ${assetError.message}`);
+  }
+
+  const assetById = new Map(
+    ((assets ?? []) as {
+      id: string;
+      asset_tag: string | null;
+      model: string | null;
+      asset_type: string | null;
+    }[]).map((asset) => [asset.id, asset]),
+  );
+
+  return rows.flatMap((row) => {
+    const asset = assetById.get(row.pc_asset_id);
+    if (!asset) {
+      return [];
+    }
+    return [
+      {
+        seatId: row.seat_id,
+        id: asset.id,
+        assetTag: asset.asset_tag,
+        model: asset.model,
+        assetType: asset.asset_type,
+      },
+    ];
+  });
+}
+
 export async function getPlanLayout(): Promise<PlanLayout> {
   const supabase = await createClient();
 
-  const [zonesRes, rowsRes, seatsRes, annotationsRes, statusesRes] =
+  const [zonesRes, rowsRes, seatsRes, annotationsRes, statusesRes, seatAssets] =
     await Promise.all([
       supabase.from("zones").select("*").order("sort_order"),
       supabase.from("zone_rows").select("*").order("sort_order"),
@@ -84,6 +145,7 @@ export async function getPlanLayout(): Promise<PlanLayout> {
         .eq("is_active", true)
         .order("grid_row"),
       supabase.from("seat_statuses").select("code, label, color, icon, sort_order").order("sort_order"),
+      loadSeatAssets(supabase),
     ]);
 
   const failure =
@@ -104,7 +166,6 @@ export async function getPlanLayout(): Promise<PlanLayout> {
     wing: z.wing,
     kind: z.kind,
     department: z.department,
-    declaredPositions: z.declared_positions,
     color: z.color,
     sortOrder: z.sort_order,
     isActive: z.is_active,
@@ -157,5 +218,5 @@ export async function getPlanLayout(): Promise<PlanLayout> {
     }),
   );
 
-  return { zones, rows, seats, annotations, statuses };
+  return { zones, rows, seats, annotations, statuses, seatAssets };
 }

@@ -20,16 +20,17 @@
 | PHASE 7 — Import Excel et CSV | **Validée** |
 | PHASE 8 — Maintenance et rapports | **Validée** |
 | PHASE 9 — Tests de bout en bout et sécurité | **Réalisée — en attente de validation** |
+| CORRECTIFS POST-PHASE 9 — Retrait Collaborateurs, Administration, recherche | **Réalisée — à valider** |
 | PHASE 10 — Déploiement cloud | À faire |
 
-**Étape actuelle :** PHASE 9 **réalisée** — suite de tests automatisés avec le
-runner natif `node --test` (aucune dépendance ajoutée) : tests **sécurité/RLS**
-(`tests/security/`) sur la base live (anonyme, `VIEWER`, `MANAGER`, `ADMIN`,
-anti-escalade, `audit_log`) et analyse statique (clé secrète absente du dépôt et
-du bundle client, RLS déclarée partout) ; tests **bout en bout HTTP**
-(`tests/e2e/`) des redirections anonymes et du rendu par rôle, serveur de
-production lancé automatiquement. Vérifié : `lint`, `typecheck`, `build`
-(15 routes), `npm run test:security` 10/10, `npm run test:e2e` 4/4.
+**Étape actuelle :** correctifs **post-Phase 9** réalisés — le module
+« Collaborateurs » disparaît du périmètre (le couple **position ↔ équipement**
+devient le cœur métier), la page **Administration** est fonctionnelle
+(utilisateurs/rôles, états de position, paramètres, journal d'audit), la
+**recherche globale** est opérationnelle, l'import couvre désormais les
+**positions** du plan, et les mentions « Phase X » restantes ont été retirées.
+Suite de tests mise à jour (sécurité/RLS + bout en bout). Vérifié : `lint`,
+`typecheck`, `build`, `npm run test:security` 10/10, `npm run test:e2e` 5/5.
 Validation requise avant la PHASE 10.
 Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
@@ -122,6 +123,10 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
   n'autorise l'édition qu'aux rôles habilités (sinon consultation seule).
 
 ### PHASE 6 — Collaborateurs et équipements (validée)
+> **Correctifs post-Phase 9** : le module Collaborateurs a été **entièrement
+> retiré** du produit (voir section dédiée ci-dessous) ; seule la logique
+> « équipement ↔ position » est conservée. Cette section décrit l'étape telle
+> qu'elle avait été réalisée.
 - **Types métier** : `types/employee.ts`, `types/asset.ts`, `types/assignment.ts`
   (camelCase, découplés de Supabase).
 - **Couche données** : `lib/data/employees.ts` (`listEmployees`, `getEmployeeDetail`,
@@ -155,7 +160,7 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 - **Couche import** (`lib/import/`) :
   - `types.ts` — `ImportKind`, `ImportRow`, `ColumnMapping`, `PreviewRow`,
     `PreviewResult`, `AnalyzeResult`, `CommitResult`.
-  - `fields.ts` — schémas de colonnes par type (`employees`, `assets`) avec
+  - `fields.ts` — schémas de colonnes par type (`seats`, `assets`) avec
     **alias d'en-têtes** (normalisation accents/casse/ponctuation), libellés du
     modèle, normalisation des statuts et types d'équipement.
   - `parse.ts` — lit un `File` : `.xlsx`/`.xlsm` via `exceljs` (première feuille,
@@ -163,26 +168,27 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
     (détection du séparateur `;`/`,`/tab/`|`, guillemets, BOM, lignes vides).
   - `validate.ts` — `mapColumns`, `buildPreview` (mapping, validation par ligne,
     détection des doublons) et constructeurs de charges utiles DB
-    (`toEmployeeData`/`toEmployeePatch`, `toAssetData`/`toAssetPatch`).
+    (`toAssetData`/`toAssetPatch`, `normalizeSeatStatus`).
   - `template.ts` — génère le classeur modèle `.xlsx` (en-têtes, colonne large).
 - **Server actions** (`lib/actions/import.ts`) : `analyzeImport` (parse + aperçu,
   fichier reçu en `FormData`) et `commitImport` (revalidation serveur, dédup,
   partition création/mise à jour, insertion par lots avec repli ligne à ligne,
   rapport). Garde de rôle partagée `ensureEditor()` (`ADMIN`/`MANAGER`).
-- **Import idempotent** : collaborateurs dédupliqués par `matricule`, parc par
-  `asset_tag` ; les lignes existantes sont **mises à jour** uniquement sur les
-  champs fournis (`toEmployeePatch`/`toAssetPatch` ne réécrivent pas les champs
-  absents).
+- **Import idempotent** : parc dédupliqué par `asset_tag`, positions par
+  `code` de position ; les lignes existantes sont **mises à jour** uniquement sur
+  les champs fournis (`toAssetPatch` ne réécrit pas les champs absents) ; les
+  zones, statuts et rangées manquants sont résolus ou créés à l'import des
+  positions.
 - **Écran `/import`** : `components/import/import-workbench.tsx` (sélection du
   type, dépôt de fichier, analyse, correspondance des colonnes, aperçu plafonné
   à 100 lignes avec statut par ligne, import, rapport d'erreurs) + lien de
   téléchargement du modèle.
 - **Téléchargement du modèle** : `app/api/import/template/route.ts`
-  (`GET ?kind=employees|assets`, réservé `ADMIN`/`MANAGER`).
+  (`GET ?kind=assets|seats`, réservé `ADMIN`/`MANAGER`).
 - **Taille de corps** : `next.config.ts` → `experimental.serverActions.bodySizeLimit = "10mb"`.
 - **Navigation** : groupe « Outils » dans la sidebar (`TOOL_ITEMS` →
-  `/import`) ; liens « Importer » ajoutés en en-tête des écrans `/employees` et
-  `/assets`. Les 7 modules A–G restent inchangés.
+  `/import`) ; lien « Importer » ajouté en en-tête de l'écran `/assets`. Les
+  6 modules A–F restent inchangés.
 
 ### PHASE 8 — Maintenance et rapports (validée)
 - **Modèle** : table `maintenance_tickets` déjà créée en Phase 4 (RLS active) —
@@ -203,11 +209,11 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
   - `/maintenance` : liste (recherche + filtres statut/priorité), création.
   - `/maintenance/[id]` : cycle de vie en un clic, formulaire d'édition, ou
     fiche en lecture seule selon le rôle.
-  - `/reports` : cartes (zones, positions, collaborateurs, équipements, tickets)
+  - `/reports` : cartes (zones, positions, équipements, tickets)
     et répartitions (positions par état, équipements par statut/type, tickets
     par statut/priorité) calculées depuis la base.
   - `/` (**Module A — Tableau de bord**) : cartes (zones, positions
-    occupées/libres, collaborateurs, équipements, équipements en maintenance,
+    occupées/libres, équipements, équipements en maintenance,
     interventions en cours), répartitions et « Dernières interventions » ;
     réutilise `getReportsOverview()` et `listRecentMaintenanceTickets()`.
     Composants `StatCard`/`BreakdownList` partagés (`components/overview/`).
@@ -234,6 +240,53 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 - **Isolation** : utilisateurs temporaires créés puis supprimés ; aucune écriture
   sur la géométrie de référence ; enregistrements de test nettoyés.
 - Détail : `docs/tests-phase9.md`.
+
+### CORRECTIFS POST-PHASE 9 — Retrait Collaborateurs, Administration, recherche (réalisée, à valider)
+- **Le module « Collaborateurs » est entièrement retiré** (décision utilisateur) :
+  écrans `/employees` supprimés, composants `components/employees/*`,
+  `lib/actions/employees.ts`, `lib/data/employees.ts`, `types/employee.ts`,
+  `types/seat.ts` et l'ancien placeholder `module-placeholder.tsx`. Le couple
+  **position ↔ équipement** devient le seul modèle d'affectation.
+- **Affectation par position** : `PcAsset.assignedSeat` ; action
+  `assignAssetToSeat({ pcAssetId, seatId })` (clôture les affectations actives
+  de l'équipement **et** de la position, `status` → `IN_USE`) ; `releaseAsset`
+  → `IN_STOCK`. `revalidateAssets()` revalide `/assets`, `/cluster`,
+  `/reports` et `/`.
+- **Cartographie** : `SeatAsset`/`seatAssets` dans `getPlanLayout()` ; panneau
+  « Équipements sur cette position » dans `cluster-viewer.tsx` (lien vers la
+  fiche équipement) ; ouverture directe d'une position via `/cluster?seat={id}` ;
+  **volumétrie par zone retirée** (`declaredPositions` sort des types/écrans,
+  la colonne DB reste une métadonnée inerte).
+- **Maintenance / statistiques sans collaborateur** : `employeeId` retiré de
+  `types/maintenance.ts`, `lib/data/maintenance.ts`, `lib/actions/maintenance.ts`
+  et du formulaire de ticket ; démarche standard : ticket → équipement et/ou
+  position (`filter by seatId`).
+- **Import Excel des positions** : `ImportKind = "assets" | "seats"` ;
+  `SEAT_FIELDS` (code, indice, zone, rangée, statut, grille) ; `commitSeats`
+  résout ou crée zones, statuts et rangées (`sort_order` auto-incrémenté) ;
+  modèle `modele-import-positions.xlsx` ; workbench d'import à deux types.
+- **Page Administration fonctionnelle** (`/settings`, réservée `ADMIN`) :
+  utilisateurs/rôles (`updateUserRole`, `toggleUserActive`) avec **garde
+  anti-blocage** (interdiction de se démotionner/désactiver soi-même) ; gestion
+  des **états de position** (création, édition, suppression bloquée si des
+  positions l'utilisent) ; **paramètres** `app_settings` (clé/valeur) ;
+  **journal d'audit** en lecture (200 derniers événements). Rôle hydraté côté
+  serveur via `ensureAdmin()`.
+- **Recherche globale fonctionnelle** : le champ du header est un vrai
+  formulaire vers `/recherche?q=…` (ILIKE échappé sur positions, équipements et
+  zones) ; page de résultats avec liens croisés vers `/cluster` et `/assets`.
+- **Nettoyage des mentions « Phase »** : badges Phase 7/8 retirés, footer
+  sidebar = « Système opérationnel », modules renumérotés **A–F**.
+- **Migration** `supabase/migrations/20261013120000_remove_employees_add_settings.sql` :
+  drop des colonnes `employee_id` puis de la table `employees` ; création de
+  `app_settings` (RLS lecture `authenticated` / écriture `ADMIN`, trigger
+  `updated_at` + audit, seed `cluster_name`). **À appliquer** via Session pooler
+  (`supabase db push --db-url`) — chaîne non présente dans `.env.local`.
+- **Tests mis à jour** : `PROTECTED_TABLES` sans `employees` + avec
+  `app_settings` ; RLS testée sur `pc_assets` (anonyme/VIEWER/MANAGER) ;
+  vérification statique du pattern RLS sur **toutes** les migrations ; E2E :
+  `/employees` retiré, `/recherche` ajouté, `/settings` couvert (restriction
+  VIEWER/MANAGER + accès ADMIN).
 
 ---
 
@@ -627,12 +680,14 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
     piloté par les données ; la géométrie vient de `grid_row`/`grid_col`
     (coordonnées Excel) — déplacer une position = mettre à jour ses coordonnées.
     Les colonnes `pos_x`/`pos_y` restent réservées à un placement libre ultérieur.
-14. **Affectations (Phase 6)** : la table `assignments` sert de jonction entre une
-    position, un collaborateur et un équipement. Règles appliquées : une position
-    active à la fois par collaborateur, un équipement affecté à un seul
-    collaborateur à la fois (les affectations précédentes sont clôturées via
-    `is_active = false` + `ended_at`). Aucune donnée métier de démonstration
-    n'est insérée ; les listes vides sont assumées.
+14. **Affectations (Phase 6, périmètre réduit post-Phase 9)** : la table
+    `assignments` sert de jonction entre une **position** et un **équipement**
+    (le module Collaborateurs a été retiré). Règles appliquées : une seule
+    affectation **active à la fois par position** et par équipement (les
+    affectations précédentes sont clôturées via `is_active = false` +
+    `ended_at`), l'affectation met le PC « En service » et la remise en stock le
+    repasse « En stock ». Aucune donnée métier de démonstration n'est insérée ;
+    les listes vides sont assumées.
 
 15. **Import Excel/CSV (Phase 7)** : le fichier est lu **côté serveur** (server
     actions) ; le mapping des colonnes se fait par **alias d'en-têtes
@@ -652,12 +707,12 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
     réouverture. Écriture réservée `ADMIN`/`MANAGER` (code + RLS).
 
 17. **Statistiques (Phase 8)** : `getReportsOverview()` agrège les compteurs
-    **côté serveur** à partir des données réelles (positions, collaborateurs,
-    équipements, tickets), sans table de synthèse ni données fictives. Les écrans
-    `/reports` (Module F) et `/` (**Tableau de bord, Module A**) partagent les
-    mêmes composants de présentation (`components/overview/`) — les libellés
-    d'état proviennent de la base (`seat_statuses`, statuts d'équipement) et non
-    du code. Le tableau de bord affiche en plus les dernières interventions via
+    **côté serveur** à partir des données réelles (positions, équipements,
+    tickets), sans table de synthèse ni données fictives. Les écrans
+    `/reports` et `/` (**Tableau de bord, Module A**) partagent les mêmes
+    composants de présentation (`components/overview/`) — les libellés d'état
+    proviennent de la base (`seat_statuses`, statuts d'équipement) et non du
+    code. Le tableau de bord affiche en plus les dernières interventions via
     `listRecentMaintenanceTickets()`.
 
 18. **Tests (Phase 9)** : runner **natif `node --test`**, sans dépendance. La
@@ -692,8 +747,10 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
 ## Prochaines actions
 
-1. **Attendre la validation de la PHASE 9** (suite de tests sécurité + bout en
-   bout) avant de démarrer la PHASE 10.
+1. **Valider les CORRECTIFS POST-PHASE 9**, puis **appliquer la migration**
+   `20261013120000_remove_employees_add_settings.sql` via Session pooler
+   (`supabase db push --db-url`) — la chaîne de connexion doit être fournie
+   (absente de `.env.local`), avant la PHASE 10.
 2. **PHASE 10 — Déploiement cloud** : hébergement, variables d'environnement,
    en-têtes de sécurité, `npm audit`.
 3. Export CSV des statistiques et historique des imports : non implémentés

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +16,8 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@/components/ui/table";
-import { assignAsset, releaseAsset } from "@/lib/actions/assets";
-import type { EmployeeOption } from "@/lib/data/employees";
+import { assignAssetToSeat, releaseAsset } from "@/lib/actions/assets";
+import type { SeatOption } from "@/lib/data/seats";
 import type { AssignmentLink } from "@/types/assignment";
 
 const dateFormatter = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" });
@@ -28,17 +29,17 @@ function formatDate(value: string): string {
 
 export function AssetAssignments({
   pcAssetId,
-  employees,
+  seats,
   assignments,
   canEdit,
 }: {
   pcAssetId: string;
-  employees: EmployeeOption[];
+  seats: SeatOption[];
   assignments: AssignmentLink[];
   canEdit: boolean;
 }) {
   const router = useRouter();
-  const [employeeId, setEmployeeId] = useState("");
+  const [seatId, setSeatId] = useState("");
   const [feedback, setFeedback] = useState<{
     tone: "success" | "danger";
     message: string;
@@ -53,7 +54,7 @@ export function AssetAssignments({
       const result = await action;
       if (result.ok) {
         setFeedback({ tone: "success", message: okMessage });
-        setEmployeeId("");
+        setSeatId("");
         router.refresh();
       } else {
         setFeedback({
@@ -73,20 +74,20 @@ export function AssetAssignments({
       {canEdit ? (
         <div className="flex flex-wrap items-end gap-3 rounded border border-line bg-ink-900/40 p-3">
           <label
-            htmlFor="assign-employee"
+            htmlFor="assign-seat"
             className="flex min-w-52 flex-1 flex-col gap-1 text-xs font-medium text-text-dim"
           >
-            Affecter à un collaborateur
+            Affecter à une position
             <Select
-              id="assign-employee"
-              value={employeeId}
-              onChange={(event) => setEmployeeId(event.target.value)}
+              id="assign-seat"
+              value={seatId}
+              onChange={(event) => setSeatId(event.target.value)}
             >
-              <option value="">Choisir un collaborateur…</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.fullName}
-                  {employee.matricule ? ` (${employee.matricule})` : ""}
+              <option value="">Choisir une position…</option>
+              {seats.map((seat) => (
+                <option key={seat.id} value={seat.id}>
+                  {seat.code}
+                  {seat.zoneName ? ` — ${seat.zoneName}` : ""}
                 </option>
               ))}
             </Select>
@@ -94,11 +95,11 @@ export function AssetAssignments({
           <Button
             variant="primary"
             size="sm"
-            disabled={pending || !employeeId}
+            disabled={pending || !seatId}
             onClick={() =>
               run(
-                assignAsset(pcAssetId, employeeId),
-                "Équipement affecté.",
+                assignAssetToSeat(pcAssetId, seatId),
+                "Équipement affecté à la position.",
               )
             }
           >
@@ -110,9 +111,11 @@ export function AssetAssignments({
       {active.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
           {active.map((assignment) => (
-            <Badge key={assignment.id} tone="accent" dot>
-              {assignment.employeeName ?? "—"}
-            </Badge>
+            <Link key={assignment.id} href="/cluster" className="inline-flex">
+              <Badge tone="accent" dot>
+                Position {assignment.seatCode ?? "—"}
+              </Badge>
+            </Link>
           ))}
           {canEdit ? (
             <Button
@@ -137,7 +140,6 @@ export function AssetAssignments({
         <Table>
           <TableHead>
             <TableRow>
-              <TableHeaderCell>Collaborateur</TableHeaderCell>
               <TableHeaderCell>Position</TableHeaderCell>
               <TableHeaderCell>Depuis</TableHeaderCell>
               <TableHeaderCell>Jusqu&apos;au</TableHeaderCell>
@@ -146,9 +148,15 @@ export function AssetAssignments({
           <TableBody>
             {assignments.map((assignment) => (
               <TableRow key={assignment.id}>
-                <TableCell>{assignment.employeeName ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">
-                  {assignment.seatCode ?? "—"}
+                <TableCell>
+                  <span className="font-mono text-xs">
+                    {assignment.seatCode ?? "—"}
+                  </span>
+                  {assignment.zoneName ? (
+                    <span className="ml-2 text-text-dim">
+                      {assignment.zoneName}
+                    </span>
+                  ) : null}
                 </TableCell>
                 <TableCell>{formatDate(assignment.startedAt)}</TableCell>
                 <TableCell>

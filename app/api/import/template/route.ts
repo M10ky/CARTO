@@ -18,9 +18,9 @@ export async function GET(request: Request) {
 
   const body = await buildImportTemplate(kind);
   const fileName =
-    kind === "employees"
-      ? "modele-import-collaborateurs.xlsx"
-      : "modele-import-parc-informatique.xlsx";
+    kind === "assets"
+      ? "modele-import-parc-informatique.xlsx"
+      : "modele-import-positions.xlsx";
 
   return new Response(body, {
     headers: {

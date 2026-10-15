@@ -17,7 +17,7 @@ import {
   maintenanceStatusTone,
 } from "@/lib/constants/maintenance";
 import { listAssetOptions } from "@/lib/data/assets";
-import { listEmployeeOptions, listSeatOptions } from "@/lib/data/employees";
+import { listSeatOptions } from "@/lib/data/seats";
 import { getMaintenanceTicket } from "@/lib/data/maintenance";
 
 export const metadata: Metadata = { title: "Fiche intervention" };
@@ -52,11 +52,7 @@ export default async function MaintenanceDetailPage({
 
   const canEdit = user?.role === "ADMIN" || user?.role === "MANAGER";
   const options = canEdit
-    ? await Promise.all([
-        listAssetOptions(),
-        listEmployeeOptions(),
-        listSeatOptions(),
-      ])
+    ? await Promise.all([listAssetOptions(), listSeatOptions()])
     : null;
 
   return (
@@ -108,8 +104,7 @@ export default async function MaintenanceDetailPage({
               <TicketForm
                 ticket={ticket}
                 assets={options[0]}
-                employees={options[1]}
-                seats={options[2]}
+                seats={options[1]}
               />
             </PanelBody>
           </Panel>
@@ -129,7 +124,6 @@ export default async function MaintenanceDetailPage({
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <Detail label="Référence" value={ticket.reference} mono />
                 <Detail label="Équipement" value={ticket.pcAssetTag} mono />
-                <Detail label="Collaborateur" value={ticket.employeeName} />
                 <Detail label="Position" value={ticket.seatCode} mono />
                 <Detail label="Technicien" value={ticket.technician} />
                 <Detail

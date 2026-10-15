@@ -31,14 +31,14 @@ export default async function ImportPage({
     );
   }
 
-  const initialKind = params.kind === "assets" ? "assets" : "employees";
+  const initialKind = params.kind === "seats" ? "seats" : "assets";
 
   return (
     <>
       <PageHeader
         title="Import Excel / CSV"
-        description="Intégrez les collaborateurs ou le parc informatique depuis un fichier : analyse, correspondance des colonnes, aperçu puis rapport d'erreurs."
-        badge={<Badge tone="accent">Phase 7</Badge>}
+        description="Intégrez le parc informatique ou les positions du plan depuis un fichier : analyse, correspondance des colonnes, aperçu puis rapport d&apos;erreurs."
+        badge={<Badge tone="accent">Prêt à l&apos;emploi</Badge>}
       />
 
       <ImportWorkbench initialKind={initialKind} />

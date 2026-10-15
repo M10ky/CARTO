@@ -7,15 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Panel, PanelBody, PanelHeader } from "@/components/ui/panel";
 import { TicketForm } from "@/components/maintenance/ticket-form";
 import type { AssetOption } from "@/lib/data/assets";
-import type { EmployeeOption, SeatOption } from "@/lib/data/employees";
+import type { SeatOption } from "@/lib/data/seats";
 
 export function NewTicket({
   assets,
-  employees,
   seats,
 }: {
   assets: AssetOption[];
-  employees: EmployeeOption[];
   seats: SeatOption[];
 }) {
   const [open, setOpen] = useState(false);
@@ -43,7 +41,6 @@ export function NewTicket({
           <PanelBody>
             <TicketForm
               assets={assets}
-              employees={employees}
               seats={seats}
               onDone={() => setOpen(false)}
             />

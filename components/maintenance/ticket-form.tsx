@@ -16,7 +16,7 @@ import {
   type MaintenanceInput,
 } from "@/lib/actions/maintenance";
 import type { AssetOption } from "@/lib/data/assets";
-import type { EmployeeOption, SeatOption } from "@/lib/data/employees";
+import type { SeatOption } from "@/lib/data/seats";
 import type { MaintenanceTicket } from "@/types/maintenance";
 
 type Feedback = { tone: "success" | "danger"; message: string };
@@ -29,7 +29,6 @@ const EMPTY: MaintenanceInput = {
   technician: "",
   resolution: "",
   pcAssetId: "",
-  employeeId: "",
   seatId: "",
 };
 
@@ -45,7 +44,6 @@ function toInput(ticket?: MaintenanceTicket): MaintenanceInput {
     technician: ticket.technician ?? "",
     resolution: ticket.resolution ?? "",
     pcAssetId: ticket.pcAssetId ?? "",
-    employeeId: ticket.employeeId ?? "",
     seatId: ticket.seatId ?? "",
   };
 }
@@ -53,13 +51,11 @@ function toInput(ticket?: MaintenanceTicket): MaintenanceInput {
 export function TicketForm({
   ticket,
   assets,
-  employees,
   seats,
   onDone,
 }: {
   ticket?: MaintenanceTicket;
   assets: AssetOption[];
-  employees: EmployeeOption[];
   seats: SeatOption[];
   onDone?: () => void;
 }) {
@@ -158,21 +154,6 @@ export function TicketForm({
             {assets.map((asset) => (
               <option key={asset.id} value={asset.id}>
                 {asset.assetTag ?? asset.model ?? "Équipement sans référence"}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="Collaborateur concerné" htmlFor="ticket-employee">
-          <Select
-            id="ticket-employee"
-            value={values.employeeId}
-            onChange={(event) => set("employeeId", event.target.value)}
-          >
-            <option value="">Aucun</option>
-            {employees.map((employee) => (
-              <option key={employee.id} value={employee.id}>
-                {employee.fullName}
-                {employee.matricule ? ` (${employee.matricule})` : ""}
               </option>
             ))}
           </Select>

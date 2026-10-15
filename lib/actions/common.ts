@@ -10,6 +10,14 @@ export async function ensureEditor(): Promise<string | null> {
   return user.id;
 }
 
+export async function ensureAdmin(): Promise<string | null> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "ADMIN") {
+    return null;
+  }
+  return user.id;
+}
+
 export function fail(error: string): ActionResult {
   return { ok: false, error };
 }

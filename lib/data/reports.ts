@@ -20,7 +20,6 @@ export type ReportsOverview = {
   zones: number;
   rows: number;
   seats: { total: number; byStatus: StatBreakdown[] };
-  employees: { total: number; active: number };
   assets: {
     total: number;
     active: number;
@@ -64,7 +63,6 @@ export async function getReportsOverview(): Promise<ReportsOverview> {
     rowsResult,
     seatsResult,
     seatStatusesResult,
-    employeesResult,
     assetsResult,
     ticketsResult,
   ] = await Promise.all([
@@ -72,7 +70,6 @@ export async function getReportsOverview(): Promise<ReportsOverview> {
     supabase.from("zone_rows").select("id", { count: "exact", head: true }),
     supabase.from("seats").select("status"),
     supabase.from("seat_statuses").select("code, label"),
-    supabase.from("employees").select("is_active"),
     supabase.from("pc_assets").select("status, asset_type, is_active"),
     supabase.from("maintenance_tickets").select("status, priority"),
   ]);
@@ -82,7 +79,6 @@ export async function getReportsOverview(): Promise<ReportsOverview> {
     rowsResult.error ??
     seatsResult.error ??
     seatStatusesResult.error ??
-    employeesResult.error ??
     assetsResult.error ??
     ticketsResult.error;
   if (error) {
@@ -98,12 +94,6 @@ export async function getReportsOverview(): Promise<ReportsOverview> {
   const seatStatuses = ((seatsResult.data ?? []) as { status: string }[]).map(
     (row) => row.status,
   );
-
-  const employeeRows = (employeesResult.data ?? []) as { is_active: boolean }[];
-  const employees = {
-    total: employeeRows.length,
-    active: employeeRows.filter((row) => row.is_active).length,
-  };
 
   const assetRows = (assetsResult.data ?? []) as {
     status: string;
@@ -157,7 +147,6 @@ export async function getReportsOverview(): Promise<ReportsOverview> {
         () => "neutral",
       ),
     },
-    employees,
     assets,
     tickets,
   };

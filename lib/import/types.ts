@@ -1,4 +1,4 @@
-export type ImportKind = "employees" | "assets";
+export type ImportKind = "assets" | "seats";
 
 export type ImportFieldType = "text" | "email";
 

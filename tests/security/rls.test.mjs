@@ -20,7 +20,7 @@ const skip = {
 };
 
 let admin;
-const created = { users: [], employees: [], tickets: [] };
+const created = { users: [], assets: [], tickets: [] };
 
 before(() => {
   if (enabled) admin = createAdminClient(cfg);
@@ -31,8 +31,8 @@ after(async () => {
   for (const id of created.tickets) {
     await admin.from("maintenance_tickets").delete().eq("id", id);
   }
-  for (const id of created.employees) {
-    await admin.from("employees").delete().eq("id", id);
+  for (const id of created.assets) {
+    await admin.from("pc_assets").delete().eq("id", id);
   }
   for (const id of created.users) {
     await deleteTempUser(admin, id);
@@ -55,8 +55,8 @@ test("anonyme : aucune lecture sur les tables protégées", skip, async () => {
 test("anonyme : écriture refusée", skip, async () => {
   const anon = createAnonClient(cfg);
   const { error } = await anon
-    .from("employees")
-    .insert({ last_name: uniqueTag("anon") });
+    .from("pc_assets")
+    .insert({ asset_tag: uniqueTag("anon") });
   assert.ok(error, "un INSERT anonyme aurait dû être refusé");
 });
 
@@ -83,11 +83,11 @@ test("VIEWER : lecture autorisée, écriture et escalade refusées", skip, async
     .maybeSingle();
   assert.equal(own.data?.role, "VIEWER");
 
-  const insEmployee = await session
-    .from("employees")
-    .insert({ last_name: uniqueTag("viewer") })
+  const insAsset = await session
+    .from("pc_assets")
+    .insert({ asset_tag: uniqueTag("viewer") })
     .select();
-  assert.ok(insEmployee.error, "un VIEWER ne doit pas créer de collaborateur");
+  assert.ok(insAsset.error, "un VIEWER ne doit pas créer d'équipement");
 
   const insTicket = await session
     .from("maintenance_tickets")
@@ -115,13 +115,13 @@ test("MANAGER : écriture métier autorisée, administration refusée", skip, as
   created.users.push(manager.id);
   const session = await createUserSession(cfg, manager.email, manager.password);
 
-  const emp = await session
-    .from("employees")
-    .insert({ last_name: uniqueTag("mgr") })
+  const asset = await session
+    .from("pc_assets")
+    .insert({ asset_tag: uniqueTag("mgr") })
     .select()
     .single();
-  assert.equal(emp.error, null, emp.error?.message);
-  created.employees.push(emp.data.id);
+  assert.equal(asset.error, null, asset.error?.message);
+  created.assets.push(asset.data.id);
 
   const ticket = await session
     .from("maintenance_tickets")

@@ -31,6 +31,7 @@ export function AssetTable({ assets }: { assets: PcAsset[] }) {
           <TableHeaderCell className="hidden sm:table-cell">Modèle</TableHeaderCell>
           <TableHeaderCell className="hidden md:table-cell">Type</TableHeaderCell>
           <TableHeaderCell className="hidden lg:table-cell">Système</TableHeaderCell>
+          <TableHeaderCell className="hidden lg:table-cell">Position</TableHeaderCell>
           <TableHeaderCell>Statut</TableHeaderCell>
         </TableRow>
       </TableHead>
@@ -53,6 +54,21 @@ export function AssetTable({ assets }: { assets: PcAsset[] }) {
             </TableCell>
             <TableCell className="hidden lg:table-cell">
               {asset.os ?? "—"}
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+              {asset.assignedSeat ? (
+                <Link
+                  href="/cluster"
+                  className="font-mono text-xs text-text-dim hover:text-accent"
+                >
+                  {asset.assignedSeat.code}
+                  {asset.assignedSeat.zoneName
+                    ? ` · ${asset.assignedSeat.zoneName}`
+                    : ""}
+                </Link>
+              ) : (
+                "—"
+              )}
             </TableCell>
             <TableCell>
               <Badge tone={pcStatusTone(asset.status)} dot>
