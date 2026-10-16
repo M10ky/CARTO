@@ -50,8 +50,8 @@ const ROOM_STYLES: Record<string, RoomStyle> = {
   },
   MEETING: {
     fill: "var(--color-ink-800)",
-    stroke: "var(--color-accent)",
-    text: "var(--color-text)",
+    stroke: "var(--color-line)",
+    text: "var(--color-text-dim)",
   },
   TABLE: {
     fill: "var(--color-ink-700)",
@@ -78,6 +78,16 @@ const ROOM_STYLES: Record<string, RoomStyle> = {
     fill: "var(--color-ink-700)",
     stroke: "var(--color-accent)",
     text: "var(--color-accent)",
+  },
+  AISLE: {
+    fill: "var(--color-aisle)",
+    stroke: "none",
+    text: "var(--color-text-dim)",
+  },
+  STRIP: {
+    fill: "transparent",
+    stroke: "none",
+    text: "var(--color-text-dim)",
   },
   SPECIAL: {
     fill: "transparent",
@@ -234,6 +244,34 @@ export function ClusterPlan({
                 textAnchor="middle"
                 fontSize={9}
                 fill="var(--color-text-faint)"
+              >
+                {annotation.label}
+              </text>
+            );
+          }
+
+          if (annotation.kind === "AISLE") {
+            return (
+              <rect
+                key={annotation.id}
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill={style.fill}
+              />
+            );
+          }
+
+          if (annotation.kind === "STRIP") {
+            return (
+              <text
+                key={annotation.id}
+                x={x + 4}
+                y={y + CELL_H - 6}
+                fontSize={11}
+                fontWeight={600}
+                fill={style.text}
               >
                 {annotation.label}
               </text>

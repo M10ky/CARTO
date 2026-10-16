@@ -32,6 +32,9 @@
   --color-se-damaged: #f2617a;
   --color-se-move: #8b7cf6;
   --color-se-check: #e8c547;
+
+  /* ---- Plan : couloirs / allées (bleu uni, sans bordure) ---- */
+  --color-aisle: #17457f;
 }
 
 :root {

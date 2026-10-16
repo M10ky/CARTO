@@ -22,6 +22,7 @@
 | PHASE 9 — Tests de bout en bout et sécurité | **Réalisée — en attente de validation** |
 | CORRECTIFS POST-PHASE 9 — Retrait Collaborateurs, Administration, recherche | **Réalisée — à valider** |
 | CORRECTIF ESPACES SPÉCIAUX — noyau central nommé | **Réalisée — à valider** |
+| PLAN GRILLE CIBLE — 6 étapes (couloirs, salles, parité) | **Réalisée — en attente de validation** |
 | PHASE 10 — Déploiement cloud | À faire |
 
 **Étape actuelle :** correctifs **post-Phase 9** réalisés — le module
@@ -367,6 +368,133 @@ Migration `supabase/migrations/20261016120000_special_areas_square.sql`.
   restent intactes.
 - **Parité** : `SPECIAL_AREAS` (`lib/spatial/cluster-layout.ts`) et la base
   `plan_annotations` sont alignés. Vérifié : `lint`, `typecheck`, `build`.
+
+---
+
+### Correction 5 — Étape 1/6 : kinds `AISLE` et `STRIP` (socle)
+
+Migration `supabase/migrations/20261016130000_annotation_kinds_aisle_strip.sql`.
+**Statut : réalisée — en attente de validation explicite** (étape 1 d'un plan de
+6 étapes visant la grille cible `plan zone.png`).
+
+- **Aucun changement visuel** : la migration n'insère ni ne modifie aucune ligne ;
+  elle élargit uniquement la contrainte `plan_annotations_kind_check` avec
+  `AISLE` (couloir / allée, bleu uni sans bordure) et `STRIP` (bande-titre fine,
+  libellé seul). Recréation idempotente de la contrainte.
+- **Types** : `PlanSpecialKind` (`lib/spatial/cluster-layout.ts`) et nouveau
+  `PlanAnnotationKind` (`types/plan.ts`, employé par `PlanAnnotation.kind` et
+  `AnnotationRecord` dans `lib/data/spatial.ts`) incluent les deux kinds.
+- **Rendu** (`components/cartography/cluster-plan.tsx`) : `ROOM_STYLES.AISLE`
+  (aplat `--color-aisle`, aucune bordure) et `ROOM_STYLES.STRIP` (texte seul),
+  branches `AISLE` (rect plein, pas de texte) et `STRIP` (texte seul) — inactives
+  tant que la base ne contient pas de telles annotations.
+- **Token** : `--color-aisle: #17457f` ajouté à `app/globals.css`.
+- **Non-régression** : aucun poste, zone ni libellé touché ; les kinds existants
+  restent inchangés. Vérifié : `lint`, `typecheck`.
+
+---
+
+### Correction 6 — Étape 2/6 : style `MEETING` neutre + retrait des tables
+
+Migration `supabase/migrations/20261016140000_remove_meeting_tables.sql`.
+**Statut : réalisée — en attente de validation explicite** (étape 2/6).
+
+- **Style `MEETING` neutralisé** (`components/cartography/cluster-plan.tsx`) :
+  ZOOM et ZEN n'ont plus de bordure accent ; `ROOM_STYLES.MEETING` adopte
+  exactement le rendu des bureaux (`fill ink-800`, `stroke line`, `text-dim`).
+- **Tables intérieures supprimées** : les annotations `Table ZOOM` et
+  `Table ZEN` (kind `TABLE`) sont retirées en base — plus aucune table de
+  réunion visible. Suppression idempotente, le kind `TABLE` reste autorisé.
+- **Non-régression** : aucune salle, aucun poste, aucune zone modifié. Vérifié :
+  `lint`, `typecheck`.
+
+---
+
+### Correction 7 — Étape 3/6 : repositionnement des salles
+
+Migration `supabase/migrations/20261016150000_reposition_core_rooms.sql`.
+**Statut : réalisée — en attente de validation explicite** (étape 3/6).
+
+Grille appliquée (colonne `AG` réservée au couloir de droite, étape 4) :
+
+| Salle | Avant | Après |
+|---|---|---|
+| toilette 1 / 2 | 42 `P`/`X` 3×8 / 3×9 | **43 `P`/`Y` 3×8** |
+| Stock Fin / Server | 45 `P`/`X` 3×8 / 3×9 | **48 `P`/`Y` 3×8** |
+| Stock 2 / Stock 1 | 48 `P`/`X` 3×8 / 3×9 | **51 `P`/`Y` 3×8** |
+| toilette 3 / 4 | 51 `P`/`X` 3×8 / 3×9 | **54 `P`/`Y` 3×8** |
+| ZOOM / SMART / SHINE | 54 `P`/`V`/`AB` 7×6 | **60 `P`/`V`/`AB` 7×5** |
+| B4B / DRH / RH | 73/75/77 `P` 2×8 / 2×8 / 7×8 | **70/73/76 `P` 3×8 / 3×8 / 5×8** |
+| Multimedia / ZEN | 73/77 `Y` 4×8 / 7×8 | **70/76 `Y` 4×8 / 5×8** |
+
+- **Colonne droite** basculée de `X` (9 col.) vers `Y` (8 col.) ; colonne gauche
+  `P` (8 col.) conservée ; la colonne `X` est libérée pour le couloir central.
+- **Pantry inchangé** (39 `P` 3×17).
+- **Non-régression** : aucun siège ni zone modifié. Chevauchement attendu et
+  transitoire = 3 postes RH `Q80/S80/U80` désormais sous la salle RH (76→80) ;
+  les 6 postes RH restants (81-82) débordent. **À traiter à l'étape 6.**
+- **Écart signalé** : la grille cible laisse les lignes **46-47 vides** entre
+  `toilette 1/2` (43-45) et `Stock Fin/Server` (48-50), contrairement à
+  l'espacement régulier de l'existant — appliqué tel qu'indiqué, à confirmer.
+
+---
+
+### Correction 8 — Étape 4/6 : couloirs `AISLE` et bandes-titre `STRIP`
+
+Migration `supabase/migrations/20261016160000_insert_aisles_strips.sql`.
+**Statut : réalisée — en attente de validation explicite** (étape 4/6).
+
+- **7 couloirs** (`AISLE`, bleu uni sans bordure, aucun libellé rendu) :
+  `Couloir Pantry` 42 `P` 1×17 ; `Couloir central` 43 `X` 16×1 ;
+  `Couloir U` 60 `U` 7×1 ; `Couloir AA` 60 `AA` 7×1 ;
+  `Couloir Zone 1` 68 `P` 1×18 ; `Couloir bas` 69 `X` 12×1 ;
+  `Couloir droit` 58 `AG` 23×1.
+- **3 bandes-titre** (`STRIP`, libellé seul) : `ZOOM` 59 `P` 1×5 ;
+  `SMART` 59 `V` 1×5 ; `SHINE` 59 `AB` 1×5.
+- **Purge puis réinsertion** (`kind in ('AISLE','STRIP')`) → idempotent.
+- **Non-régression** : aucune salle, aucun siège, aucune zone modifié. Contrôle
+  géométrique automatique : aucune collision salle/couloir/strip ; seul
+  recouvrement AISLE/AISLE `Couloir droit` × `Couloir Zone 1` en `AG68`
+  (bleu sur bleu, sans effet visuel).
+- Les libellés des bandes-titre réutilisent le nom des salles : toute requête
+  ultérieure sur ces noms doit filtrer `kind`.
+- Vérifié : `lint`, `typecheck`.
+
+---
+
+### Correction 9 — Étape 5/6 : parité `SPECIAL_AREAS` ↔ base
+
+`lib/spatial/cluster-layout.ts` (`SPECIAL_AREAS`). **Statut : réalisée — en attente
+de validation explicite** (étape 5/6).
+
+- **32 entrées** au total, alignées mot pour mot sur l'état final de
+  `plan_annotations` : escalier (1), Pantry (1), sanitaires/stock/serveur (8),
+  salles de réunion (ZOOM/SMART/SHINE), bloc bas (B4B/DRH/RH/Multimedia/ZEN),
+  BOX 4.1-4.3 / BOX 5, **7 couloirs `AISLE`** et **3 bandes-titre `STRIP`**.
+- **Suppression** des entrées obsolètes `TABLE-ZOOM` et `TABLE-ZEN` (tables
+  retirées en base à l'étape 2).
+- **Géométrie mise à jour** : colonne droite `X`→`Y`, salles repositionnées
+  (étape 3), couloirs/bandes-titre ajoutés (étape 4).
+- Contrôle automatique : **parité OK** (libellés + kinds + nombre d'entrées).
+  Vérifié : `lint`, `typecheck`.
+
+---
+
+### Correction 10 — Étape 6/6 : postes RH + pastilles de zone
+
+**Statut : réalisée — en attente de validation explicite** (étape 6/6).
+
+- **9 postes RH conservés** (décision produit) : les postes `Q/S/U` lignes 80-82
+  de la zone `AN-Z1` restent en base ; **aucune suppression**. Les 3 postes
+  `Q80/S80/U80` se superposent à la salle RH (76→80) et les 6 autres débordent :
+  **l'utilisateur les repositionnera** lui-même.
+- **Déplaçabilité confirmée** : ce sont des sièges ordinaires (`grid_row` /
+  `grid_col` renseignés, `status FREE`, `is_active true`) rendus **au-dessus** des
+  salles, donc déplaçables via le mode « Déplacer » (`moveSeat`) comme toutes les
+  autres positions du cluster — **aucun changement de code nécessaire**.
+- **Pastilles de zone déjà conformes** à la grille cible (colonne `AI`) :
+  `ZONE 6`→42, `BOX 4`→58, `ZONE 5`→65, `BOX 5`→81. Aucune modification.
+- **Aucune migration** pour cette étape.
 
 ---
 

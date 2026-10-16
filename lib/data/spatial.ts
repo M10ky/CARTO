@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
   PlanAnnotation,
+  PlanAnnotationKind,
   PlanLayout,
   PlanRow,
   PlanSeat,
@@ -49,7 +50,7 @@ type AnnotationRecord = {
   id: string;
   zone_id: string | null;
   label: string;
-  kind: string;
+  kind: PlanAnnotationKind;
   grid_row: number | null;
   grid_col: string | null;
   row_span: number;

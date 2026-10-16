@@ -43,11 +43,29 @@ export type PlanSeat = {
   isActive: boolean;
 };
 
+export type PlanAnnotationKind =
+  | "ZONE"
+  | "RANGEE"
+  | "WING"
+  | "FREE"
+  | "SPECIAL"
+  | "PANTRY"
+  | "TOILET"
+  | "STOCK"
+  | "SERVER"
+  | "OFFICE"
+  | "STAIR"
+  | "MEETING"
+  | "TABLE"
+  | "BOX"
+  | "AISLE"
+  | "STRIP";
+
 export type PlanAnnotation = {
   id: string;
   zoneId: string | null;
   label: string;
-  kind: string;
+  kind: PlanAnnotationKind;
   gridRow: number | null;
   gridCol: string | null;
   rowSpan: number;

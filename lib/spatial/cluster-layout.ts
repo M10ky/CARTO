@@ -15,7 +15,9 @@ export type PlanSpecialKind =
   | "OFFICE"
   | "MEETING"
   | "TABLE"
-  | "BOX";
+  | "BOX"
+  | "AISLE"
+  | "STRIP";
 
 export type PlanSpecialArea = {
   id: string;
@@ -140,27 +142,35 @@ export const SEAT_ROWS: PlanSeatRow[] = [
 export const SPECIAL_AREAS: PlanSpecialArea[] = [
   { id: "ESCALIER EST", label: "ESCALIER EST", kind: "STAIR", row: 10, col: "X", rowSpan: 11, colSpan: 1 },
   { id: "PANTRY", label: "Pantry", kind: "PANTRY", row: 39, col: "P", rowSpan: 3, colSpan: 17 },
-  { id: "TOILETTE-1", label: "toilette 1", kind: "TOILET", row: 42, col: "P", rowSpan: 3, colSpan: 8 },
-  { id: "TOILETTE-2", label: "toilette 2", kind: "TOILET", row: 42, col: "X", rowSpan: 3, colSpan: 9 },
-  { id: "STOCK-FIN", label: "Stock Fin", kind: "STOCK", row: 45, col: "P", rowSpan: 3, colSpan: 8 },
-  { id: "SERVER", label: "Server", kind: "SERVER", row: 45, col: "X", rowSpan: 3, colSpan: 9 },
-  { id: "STOCK-2", label: "Stock 2", kind: "STOCK", row: 48, col: "P", rowSpan: 3, colSpan: 8 },
-  { id: "STOCK-1", label: "Stock 1", kind: "STOCK", row: 48, col: "X", rowSpan: 3, colSpan: 9 },
-  { id: "TOILETTE-3", label: "toilette 3", kind: "TOILET", row: 51, col: "P", rowSpan: 3, colSpan: 8 },
-  { id: "TOILETTE-4", label: "toilette 4", kind: "TOILET", row: 51, col: "X", rowSpan: 3, colSpan: 9 },
-  { id: "ZOOM", label: "ZOOM", kind: "MEETING", row: 54, col: "P", rowSpan: 7, colSpan: 6 },
-  { id: "SMART", label: "SMART", kind: "OFFICE", row: 54, col: "V", rowSpan: 7, colSpan: 6 },
-  { id: "SHINE", label: "SHINE", kind: "OFFICE", row: 54, col: "AB", rowSpan: 7, colSpan: 6 },
-  { id: "TABLE-ZOOM", label: "Table", kind: "TABLE", row: 57, col: "R", rowSpan: 2, colSpan: 3 },
-  { id: "B4B", label: "B4B", kind: "OFFICE", row: 73, col: "P", rowSpan: 2, colSpan: 8 },
-  { id: "DRH", label: "DRH", kind: "OFFICE", row: 75, col: "P", rowSpan: 2, colSpan: 8 },
-  { id: "RH", label: "RH", kind: "OFFICE", row: 77, col: "P", rowSpan: 7, colSpan: 8 },
-  { id: "MULTIMEDIA", label: "Multimedia", kind: "OFFICE", row: 73, col: "Y", rowSpan: 4, colSpan: 8 },
-  { id: "ZEN", label: "ZEN", kind: "MEETING", row: 77, col: "Y", rowSpan: 7, colSpan: 8 },
-  { id: "TABLE-ZEN", label: "Table", kind: "TABLE", row: 80, col: "AA", rowSpan: 2, colSpan: 4 },
+  { id: "AISLE-PANTRY", label: "Couloir Pantry", kind: "AISLE", row: 42, col: "P", rowSpan: 1, colSpan: 17 },
+  { id: "AISLE-CENTRAL", label: "Couloir central", kind: "AISLE", row: 43, col: "X", rowSpan: 16, colSpan: 1 },
+  { id: "TOILETTE-1", label: "toilette 1", kind: "TOILET", row: 43, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "TOILETTE-2", label: "toilette 2", kind: "TOILET", row: 43, col: "Y", rowSpan: 3, colSpan: 8 },
+  { id: "STOCK-FIN", label: "Stock Fin", kind: "STOCK", row: 48, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "SERVER", label: "Server", kind: "SERVER", row: 48, col: "Y", rowSpan: 3, colSpan: 8 },
+  { id: "STOCK-2", label: "Stock 2", kind: "STOCK", row: 51, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "STOCK-1", label: "Stock 1", kind: "STOCK", row: 51, col: "Y", rowSpan: 3, colSpan: 8 },
+  { id: "TOILETTE-3", label: "toilette 3", kind: "TOILET", row: 54, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "TOILETTE-4", label: "toilette 4", kind: "TOILET", row: 54, col: "Y", rowSpan: 3, colSpan: 8 },
+  { id: "AISLE-DROIT", label: "Couloir droit", kind: "AISLE", row: 58, col: "AG", rowSpan: 23, colSpan: 1 },
   { id: "BOX4-1", label: "Box 4.1", kind: "BOX", row: 59, col: "AJ", rowSpan: 3, colSpan: 3 },
   { id: "BOX4-2", label: "Box 4.2", kind: "BOX", row: 59, col: "AM", rowSpan: 3, colSpan: 3 },
   { id: "BOX4-3", label: "Box 4.3", kind: "BOX", row: 59, col: "AP", rowSpan: 3, colSpan: 3 },
+  { id: "STRIP-ZOOM", label: "ZOOM", kind: "STRIP", row: 59, col: "P", rowSpan: 1, colSpan: 5 },
+  { id: "STRIP-SMART", label: "SMART", kind: "STRIP", row: 59, col: "V", rowSpan: 1, colSpan: 5 },
+  { id: "STRIP-SHINE", label: "SHINE", kind: "STRIP", row: 59, col: "AB", rowSpan: 1, colSpan: 5 },
+  { id: "ZOOM", label: "ZOOM", kind: "MEETING", row: 60, col: "P", rowSpan: 7, colSpan: 5 },
+  { id: "SMART", label: "SMART", kind: "OFFICE", row: 60, col: "V", rowSpan: 7, colSpan: 5 },
+  { id: "SHINE", label: "SHINE", kind: "OFFICE", row: 60, col: "AB", rowSpan: 7, colSpan: 5 },
+  { id: "AISLE-U", label: "Couloir U", kind: "AISLE", row: 60, col: "U", rowSpan: 7, colSpan: 1 },
+  { id: "AISLE-AA", label: "Couloir AA", kind: "AISLE", row: 60, col: "AA", rowSpan: 7, colSpan: 1 },
+  { id: "AISLE-ZONE1", label: "Couloir Zone 1", kind: "AISLE", row: 68, col: "P", rowSpan: 1, colSpan: 18 },
+  { id: "AISLE-BAS", label: "Couloir bas", kind: "AISLE", row: 69, col: "X", rowSpan: 12, colSpan: 1 },
+  { id: "B4B", label: "B4B", kind: "OFFICE", row: 70, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "MULTIMEDIA", label: "Multimedia", kind: "OFFICE", row: 70, col: "Y", rowSpan: 4, colSpan: 8 },
+  { id: "DRH", label: "DRH", kind: "OFFICE", row: 73, col: "P", rowSpan: 3, colSpan: 8 },
+  { id: "RH", label: "RH", kind: "OFFICE", row: 76, col: "P", rowSpan: 5, colSpan: 8 },
+  { id: "ZEN", label: "ZEN", kind: "MEETING", row: 76, col: "Y", rowSpan: 5, colSpan: 8 },
   { id: "BOX5", label: "Box 5", kind: "BOX", row: 81, col: "AJ", rowSpan: 3, colSpan: 3 },
 ];
 
