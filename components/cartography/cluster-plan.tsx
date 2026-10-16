@@ -48,6 +48,22 @@ const ROOM_STYLES: Record<string, RoomStyle> = {
     stroke: "var(--color-line)",
     text: "var(--color-text-dim)",
   },
+  MEETING: {
+    fill: "var(--color-ink-800)",
+    stroke: "var(--color-accent)",
+    text: "var(--color-text)",
+  },
+  TABLE: {
+    fill: "var(--color-ink-700)",
+    stroke: "var(--color-accent)",
+    text: "var(--color-text-dim)",
+  },
+  BOX: {
+    fill: "transparent",
+    stroke: "var(--color-text-faint)",
+    text: "var(--color-text-dim)",
+    dashed: true,
+  },
   STOCK: {
     fill: "var(--color-ink-900)",
     stroke: "var(--color-text-faint)",
@@ -221,6 +237,23 @@ export function ClusterPlan({
               >
                 {annotation.label}
               </text>
+            );
+          }
+
+          if (annotation.kind === "TABLE") {
+            return (
+              <g key={annotation.id}>
+                <rect
+                  x={x + 1}
+                  y={y + 1}
+                  width={width - 2}
+                  height={height - 2}
+                  rx={5}
+                  fill={style.fill}
+                  stroke={style.stroke}
+                  strokeDasharray={style.dashed ? "3 3" : undefined}
+                />
+              </g>
             );
           }
 

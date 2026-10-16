@@ -323,6 +323,53 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
 ---
 
+### Correction 3 — Plan d'architecte : noyau central bas + BOX 4 / BOX 5
+
+Migration `supabase/migrations/20261015130000_architect_layout.sql`.
+
+- **Bloc bas descendu, baseline commune = ligne 83** (entrée du cluster), avec
+  couloir d'entrée sur la **colonne X** (entre RH et ZEN) :
+  - colonne gauche `P..W` : B4B (l.73, 2×8), DRH (l.75, 2×8), **RH (l.77, 7×8)** ;
+  - colonne droite `Y..AF` : Multimedia (l.73, 4×8), **ZEN (l.77, 7×8)** ;
+  - RH et ZEN descendent jusqu'à la **ligne 83**, alignés sur BOX 5 (l.83).
+- **Salles de réunion** : ZOOM et ZEN re-kindés `MEETING` ; rectangles centraux
+  de table en kind `TABLE` (ZOOM `R57` 2×3 ; ZEN `AA80` 2×4), rendus sans texte.
+- **BOX 4 = 3 petites salles** (kind `BOX`, 3×3 lignes 59-61) : `AJ59` / `AM59` /
+  `AP59`, chaque salle contenant 1 PC existant (ligne 60) ; **BOX 5 = 1 petite
+  salle** (`AJ81` 3×3) contenant le PC existant (ligne 83).
+- **9 postes créés dans la salle RH**, rattachés à la zone `AN-Z1` (3 nouvelles
+  rangées 11-13) : grille 3×3 lignes 80-82 × colonnes `Q/S/U`, codes
+  `AN-Z1-R11-P01…AN-Z1-R13-P03`, statut `FREE`. Total **680 postes**
+  (671 d'origine + 9).
+- **Kinds étendus** : contrainte élargie à `… | MEETING | TABLE | BOX`, type
+  `PlanSpecialKind` aligné, `ROOM_STYLES` + rendu dédié `TABLE` dans
+  `cluster-plan.tsx`.
+- **Géométrie séparée du rendu** : `SPECIAL_AREAS` et `SEAT_ROWS`
+  (`lib/spatial/cluster-layout.ts`) mis en parité avec les données live.
+- **Non-régression** : les 48 postes `AS-Z5`, le reste des 671 positions d'origine
+  et les libellés d'annotation sont intacts. Vérifié : `lint`, `typecheck`,
+  `build`, `test:security` (10/10), `test:e2e` (5/5).
+
+---
+
+### Correction 4 — ZOOM / SMART / SHINE en blocs carrés
+
+Migration `supabase/migrations/20261016120000_special_areas_square.sql`.
+
+- **Les trois salles de la rangée 54 deviennent des carrés** : hauteur portée de
+  3 à **7 lignes** (lignes 54→60), soit `6×7` cellules ≈ 156×154 px, quasi carré.
+- **Alignement strict** : ZOOM (`P54`), SMART (`V54`) et SHINE (`AB54`) partagent
+  la même ligne de départ (54) et la même base (60) ; SHINE s'élargit d'une
+  colonne (`AB→AG`) pour égaler la largeur des deux autres.
+- **Table de ZOOM recentrée** en `R57` (2×3) dans la salle agrandie.
+- **Aucune collision** : la bande lignes `54-60`, colonnes `P→AG` ne contient
+  aucun poste ni annotation (vérifié en base). ZONE 5, ZONE 6 et les autres zones
+  restent intactes.
+- **Parité** : `SPECIAL_AREAS` (`lib/spatial/cluster-layout.ts`) et la base
+  `plan_annotations` sont alignés. Vérifié : `lint`, `typecheck`, `build`.
+
+---
+
 ## Fichiers créés ou modifiés (PHASE 1)
 
 **Créés**
@@ -780,9 +827,10 @@ Détail : `docs/tests-phase9.md`. Fiches de passation : `docs/PASSATION.txt`.
 
 ## Prochaines actions
 
-1. **Valider les correctifs** (post-Phase 9 + espaces spéciaux). Les migrations
-   `20261013120000_remove_employees_add_settings.sql` et
-   `20261015120000_special_areas_rework.sql` sont **appliquées** via Session
+1. **Valider les correctifs** (post-Phase 9 + espaces spéciaux + plan
+   d'architecte). Les migrations `20261013120000_remove_employees_add_settings.sql`,
+   `20261015120000_special_areas_rework.sql` et
+   `20261015130000_architect_layout.sql` sont **appliquées** via Session
    pooler (`supabase db push --db-url`) ; pour reproduire, fournir la chaîne de
    connexion (absente de `.env.local`). Validation avant la PHASE 10.
 2. **PHASE 10 — Déploiement cloud** : hébergement, variables d'environnement,
